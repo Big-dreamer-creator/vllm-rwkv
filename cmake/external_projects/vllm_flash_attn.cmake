@@ -41,6 +41,10 @@ else()
           GIT_REPOSITORY https://github.com/vllm-project/flash-attention.git
           GIT_TAG bb9a72e7dde0dc614ffc663e052cd6a19ce73a42
           GIT_PROGRESS TRUE
+          # CUDA builds only consume CUTLASS. Avoid recursively fetching the
+          # ROCm-only composable_kernel and aiter submodules.
+          GIT_SUBMODULES csrc/cutlass
+          GIT_SUBMODULES_RECURSE FALSE
           # Don't share the vllm-flash-attn build between build types
           BINARY_DIR ${CMAKE_BINARY_DIR}/vllm-flash-attn
   )
