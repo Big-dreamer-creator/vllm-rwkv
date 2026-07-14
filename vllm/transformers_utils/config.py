@@ -70,6 +70,9 @@ class LazyConfigDict(dict):
 
 
 _CONFIG_REGISTRY: dict[str, type[PretrainedConfig]] = LazyConfigDict(
+    any2rwkv_qwen35_rwkv7="Any2RWKV7Config",
+    any2rwkv_proxy="Any2RWKVProxyConfig",
+    any2rwkv_hybrid="Any2RWKVHybridConfig",
     afmoe="AfmoeConfig",
     arctic="ArcticConfig",
     bagel="BagelConfig",

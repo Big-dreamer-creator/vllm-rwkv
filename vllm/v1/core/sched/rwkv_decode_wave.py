@@ -10,7 +10,9 @@ if TYPE_CHECKING:
     from vllm.v1.request import Request
 
 
-_RWKV7_ARCHITECTURE = "RWKV7ForCausalLM"
+_RWKV7_ARCHITECTURES = frozenset(
+    {"RWKV7ForCausalLM", "Any2RWKV7ForCausalLM", "Any2RWKVProxyForCausalLM"}
+)
 
 
 @dataclass
@@ -49,8 +51,8 @@ class RWKVNativeDecodeWavePolicy:
     def enabled_for_model(model_config: Any) -> bool:
         architecture = getattr(model_config, "architecture", None)
         architectures = getattr(model_config, "architectures", None) or []
-        return (
-            architecture == _RWKV7_ARCHITECTURE or _RWKV7_ARCHITECTURE in architectures
+        return architecture in _RWKV7_ARCHITECTURES or bool(
+            _RWKV7_ARCHITECTURES.intersection(architectures)
         )
 
     @staticmethod

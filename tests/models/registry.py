@@ -520,6 +520,16 @@ _TEXT_GENERATION_EXAMPLE_MODELS = {
         tokenizer_mode="rwkv",
         is_available_online=False,
     ),
+    "Any2RWKV7ForCausalLM": _HfExamplesInfo(
+        "any2rwkv/fixture-60-layer",
+        trust_remote_code=True,
+        is_available_online=False,
+    ),
+    "Any2RWKVProxyForCausalLM": _HfExamplesInfo(
+        "any2rwkv/qwen3.5-2b-proxy",
+        trust_remote_code=True,
+        is_available_online=False,
+    ),
     "SarvamMoEForCausalLM": _HfExamplesInfo(
         "sarvamai/sarvam-30b",
         trust_remote_code=True,

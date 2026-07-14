@@ -476,6 +476,7 @@ def test_attention_config():
     [
         ["RWKV7ForCausalLM"],
         ["OtherArchitecture", "RWKV7ForCausalLM"],
+        ["Any2RWKV7ForCausalLM"],
     ],
 )
 def test_rwkv7_allows_concurrent_partial_prefill(architectures):

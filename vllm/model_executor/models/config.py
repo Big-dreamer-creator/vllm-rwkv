@@ -916,6 +916,8 @@ MODELS_CONFIG_MAP: dict[str, type[VerifyAndUpdateConfig]] = {
     "Qwen3_5ForConditionalGeneration": Qwen3_5ForConditionalGenerationConfig,
     "Qwen3_5MoeForConditionalGeneration": Qwen3_5ForConditionalGenerationConfig,
     "RWKV7ForCausalLM": RWKV7ForCausalLMConfig,
+    "Any2RWKV7ForCausalLM": RWKV7ForCausalLMConfig,
+    "Any2RWKVProxyForCausalLM": RWKV7ForCausalLMConfig,
     "UnlimitedOCRForCausalLM": UnlimitedOCRForCausalLMConfig,
     "VoyageQwen3BidirectionalEmbedModel": VoyageQwen3BidirectionalEmbedModelConfig,
     "XLMRobertaModel": JinaRobertaModelConfig,

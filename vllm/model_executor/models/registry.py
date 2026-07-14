@@ -69,6 +69,8 @@ from .interfaces_base import (
 logger = init_logger(__name__)
 
 _TEXT_GENERATION_MODELS = {
+    "Any2RWKV7ForCausalLM": ("any2rwkv", "Any2RWKV7ForCausalLM"),
+    "Any2RWKVProxyForCausalLM": ("any2rwkv", "Any2RWKVProxyForCausalLM"),
     # [Decoder-only]
     "AfmoeForCausalLM": ("afmoe", "AfmoeForCausalLM"),
     "ApertusForCausalLM": ("apertus", "ApertusForCausalLM"),

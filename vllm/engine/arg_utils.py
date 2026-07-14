@@ -2386,7 +2386,15 @@ class EngineArgs:
         """Raise an error if the feature is not supported."""
         # No Concurrent Partial Prefills so far.
         architectures = getattr(model_config, "architectures", [])
-        is_rwkv7 = "RWKV7ForCausalLM" in architectures
+        is_rwkv7 = bool(
+            {
+                "RWKV7ForCausalLM",
+                "Any2RWKV7ForCausalLM",
+                "Any2RWKVProxyForCausalLM",
+            }.intersection(
+                architectures
+            )
+        )
         if not is_rwkv7 and (
             self.max_num_partial_prefills != SchedulerConfig.max_num_partial_prefills
             or self.max_long_partial_prefills

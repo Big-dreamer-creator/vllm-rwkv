@@ -67,6 +67,8 @@ logger = init_logger(__name__)
 
 DEFAULT_V2_MODEL_RUNNER_ARCHITECTURES = frozenset(
     {
+        "Any2RWKV7ForCausalLM",
+        "Any2RWKVProxyForCausalLM",
         "DeepseekV2ForCausalLM",
         "Qwen2MoeForCausalLM",
         "GraniteMoeForCausalLM",
@@ -624,7 +626,14 @@ class VllmConfig:
             return False
         architectures = getattr(model_config, "architectures", [])
         architecture = getattr(model_config, "architecture", None)
-        return architecture == "RWKV7ForCausalLM" or "RWKV7ForCausalLM" in architectures
+        rwkv_architectures = {
+            "RWKV7ForCausalLM",
+            "Any2RWKV7ForCausalLM",
+            "Any2RWKVProxyForCausalLM",
+        }
+        return architecture in rwkv_architectures or bool(
+            rwkv_architectures.intersection(architectures)
+        )
 
     def _raise_rwkv7_unsupported_features(
         self, unsupported: list[str] | None = None

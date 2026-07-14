@@ -212,6 +212,10 @@ from vllm.model_executor.models.registry import ModelRegistry
 assert "vllm.rwkv7_ops" not in sys.modules
 model_cls = ModelRegistry._try_load_model_cls("RWKV7ForCausalLM")
 assert model_cls.__name__ == "RWKV7ForCausalLM"
+final_cls = ModelRegistry._try_load_model_cls("Any2RWKV7ForCausalLM")
+proxy_cls = ModelRegistry._try_load_model_cls("Any2RWKVProxyForCausalLM")
+assert final_cls.__name__ == "Any2RWKV7ForCausalLM"
+assert proxy_cls.__name__ == "Any2RWKVProxyForCausalLM"
 assert "vllm.rwkv7_ops" not in sys.modules
 """
 

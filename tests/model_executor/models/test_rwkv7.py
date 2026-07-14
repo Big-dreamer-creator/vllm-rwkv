@@ -619,11 +619,15 @@ def test_rwkv7_config_disables_prefix_caching():
     assert vllm_config.cache_config.enable_prefix_caching is False
 
 
-def test_rwkv7_allows_chunked_prefill_without_kv_cache():
+@pytest.mark.parametrize(
+    "architecture",
+    ["RWKV7ForCausalLM", "Any2RWKV7ForCausalLM", "Any2RWKVProxyForCausalLM"],
+)
+def test_rwkv7_allows_chunked_prefill_without_kv_cache(architecture):
     vllm_config = SimpleNamespace(
         model_config=SimpleNamespace(
             runner_type="generate",
-            architectures=["RWKV7ForCausalLM"],
+            architectures=[architecture],
             hf_config=SimpleNamespace(architectures=[]),
         )
     )

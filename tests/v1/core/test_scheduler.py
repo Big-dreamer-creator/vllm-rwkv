@@ -513,6 +513,11 @@ def test_rwkv_decode_wave_policy_module_api_exists():
     assert policy.enabled_for_model(
         SimpleNamespace(architecture=None, architectures=["RWKV7ForCausalLM"])
     )
+    assert policy.enabled_for_model(
+        SimpleNamespace(
+            architecture="Any2RWKV7ForCausalLM", architectures=[]
+        )
+    )
     assert not policy.enabled_for_model(
         SimpleNamespace(architecture="LlamaForCausalLM", architectures=["Llama"])
     )

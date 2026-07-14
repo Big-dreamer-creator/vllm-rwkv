@@ -100,7 +100,13 @@ def _supports_no_kv_cache_chunked_prefill(vllm_config: VllmConfig) -> bool:
     architectures = list(getattr(model_config, "architectures", []) or [])
     hf_config = getattr(model_config, "hf_config", None)
     architectures.extend(getattr(hf_config, "architectures", []) or [])
-    return "RWKV7ForCausalLM" in architectures
+    return bool(
+        {
+            "RWKV7ForCausalLM",
+            "Any2RWKV7ForCausalLM",
+            "Any2RWKVProxyForCausalLM",
+        }.intersection(architectures)
+    )
 
 
 class EngineCore:

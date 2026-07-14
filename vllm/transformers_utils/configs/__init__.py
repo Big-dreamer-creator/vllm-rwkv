@@ -15,6 +15,9 @@ from __future__ import annotations
 import importlib
 
 _CLASS_TO_MODULE: dict[str, str] = {
+    "Any2RWKV7Config": "vllm.transformers_utils.configs.any2rwkv",
+    "Any2RWKVProxyConfig": "vllm.transformers_utils.configs.any2rwkv",
+    "Any2RWKVHybridConfig": "vllm.transformers_utils.configs.any2rwkv",
     "AfmoeConfig": "vllm.transformers_utils.configs.afmoe",
     "ArcticConfig": "vllm.transformers_utils.configs.arctic",
     "AXK1Config": "vllm.transformers_utils.configs.AXK1",
@@ -96,6 +99,9 @@ _CLASS_TO_MODULE: dict[str, str] = {
 }
 
 __all__ = [
+    "Any2RWKV7Config",
+    "Any2RWKVProxyConfig",
+    "Any2RWKVHybridConfig",
     "AfmoeConfig",
     "ArcticConfig",
     "AXK1Config",
