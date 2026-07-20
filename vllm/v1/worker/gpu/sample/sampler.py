@@ -59,6 +59,7 @@ class Sampler:
         self.require_rapid = False
         self.rapid_penalties: torch.Tensor | None = None
         self.rapid_penalty_native_fallback = np.zeros(max_num_reqs, dtype=bool)
+        self.rapid_sampler_states: dict[tuple[int, int], torch.Tensor] = {}
 
     def add_request(
         self, req_idx: int, prompt_len: int, sampling_params: SamplingParams
@@ -487,6 +488,7 @@ class Sampler:
                     penalty_decays=penalty_decays,
                     penalty_indices=expanded_idx_mapping,
                     return_logprobs=needs_processed_logprobs,
+                    state_cache=self.rapid_sampler_states,
                 )
             else:
                 rapid_result = rapid_sample(
@@ -495,6 +497,7 @@ class Sampler:
                     top_p,
                     temperatures=temperatures,
                     return_logprobs=needs_processed_logprobs,
+                    state_cache=self.rapid_sampler_states,
                 )
             if needs_processed_logprobs:
                 sampled, rapid_sampled_logprobs = rapid_result

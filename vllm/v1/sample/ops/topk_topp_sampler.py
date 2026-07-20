@@ -22,7 +22,35 @@ if HAS_TRITON:
 logger = init_logger(__name__)
 
 _RAPID_SAMPLER_MODULE = None
-_RAPID_SAMPLER_STATES: dict[tuple[int, int], torch.Tensor] = {}
+RapidSamplerStateCache = dict[tuple[int, int], torch.Tensor]
+_RAPID_SAMPLER_FALLBACK_STATES: dict[tuple[int, int, int], torch.Tensor] = {}
+_RAPID_PENALTY_INDEX_STATS = {
+    "indexed_calls": 0,
+    "indexed_rows": 0,
+    "indexed_vocab_elements": 0,
+}
+
+
+def reset_rapid_penalty_index_stats() -> None:
+    for key in _RAPID_PENALTY_INDEX_STATS:
+        _RAPID_PENALTY_INDEX_STATS[key] = 0
+
+
+def get_rapid_penalty_index_stats() -> dict[str, int]:
+    return dict(_RAPID_PENALTY_INDEX_STATS)
+
+
+def _record_rapid_penalty_index_stats(
+    *,
+    rows: int,
+    vocab_size: int,
+) -> None:
+    elements = rows * vocab_size
+    _RAPID_PENALTY_INDEX_STATS["indexed_calls"] += 1
+    _RAPID_PENALTY_INDEX_STATS["indexed_rows"] += rows
+    _RAPID_PENALTY_INDEX_STATS["indexed_vocab_elements"] += elements
+
+
 def flashinfer_sampler_supported() -> bool:
     """Decide whether FlashInfer's top-p/top-k sampler can be used.
 
@@ -140,6 +168,7 @@ class TopKTopPSampler(nn.Module):
         super().__init__()
         self.logprobs_mode = logprobs_mode
         self.use_fp64_gumbel = use_fp64_gumbel
+        self.rapid_sampler_states: RapidSamplerStateCache = {}
         if current_platform.is_cuda():
             # Optimized samplers don't expose post-top-k/top-p logits/logprobs,
             # so they can't be used when the configured mode requires them.
@@ -254,7 +283,15 @@ class TopKTopPSampler(nn.Module):
             return self.forward_native(logits, generators, k, p)
         if self.logprobs_mode in ("processed_logits", "processed_logprobs"):
             return self.forward_native(logits, generators, k, p)
-        return rapid_sample(logits, scalar_top_k, scalar_top_p), None
+        return (
+            rapid_sample(
+                logits,
+                scalar_top_k,
+                scalar_top_p,
+                state_cache=self.rapid_sampler_states,
+            ),
+            None,
+        )
 
     def forward_cpu(
         self,
@@ -595,18 +632,28 @@ def _rapid_scalar(value: torch.Tensor | int | float | None, default):
     return value.reshape(-1)[0].item()
 
 
-def _rapid_states(module, logits: torch.Tensor) -> torch.Tensor:
+def _rapid_states(
+    module,
+    logits: torch.Tensor,
+    state_cache: RapidSamplerStateCache | None = None,
+) -> torch.Tensor:
     batch_size = logits.shape[0] if logits.dim() >= 2 else 1
     device_idx = logits.device.index
     if device_idx is None:
         device_idx = torch.accelerator.current_device_index()
-    key = (device_idx, batch_size)
-    states = _RAPID_SAMPLER_STATES.get(key)
+    if state_cache is None:
+        stream_id = torch.cuda.current_stream(device_idx).cuda_stream
+        cache = _RAPID_SAMPLER_FALLBACK_STATES
+        key = (device_idx, stream_id, batch_size)
+    else:
+        cache = state_cache
+        key = (device_idx, batch_size)
+    states = cache.get(key)
     if states is None or states.device != logits.device:
         seed = secrets.randbits(63)
         with torch.accelerator.device_index(device_idx):
             states = module.setup_rand(seed, batch_size)
-        _RAPID_SAMPLER_STATES[key] = states
+        cache[key] = states
     return states
 
 
@@ -632,6 +679,7 @@ def rapid_sample(
     penalty_decays: torch.Tensor | None = None,
     penalty_indices: torch.Tensor | None = None,
     return_logprobs: bool = False,
+    state_cache: RapidSamplerStateCache | None = None,
 ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
     """Sample with rapid CUDA and optionally return sampled-token logprobs.
 
@@ -655,7 +703,7 @@ def rapid_sample(
                 "per-request sampling parameters."
             )
         module = _load_rapid_sampler_module()
-        states = _rapid_states(module, logits)
+        states = _rapid_states(module, logits, state_cache)
         return _format_rapid_sample_result(
             module.batch_sampling_temperature_topk_topp(
                 logits,
@@ -667,9 +715,6 @@ def rapid_sample(
             ),
             return_logprobs=return_logprobs,
         )
-
-    module = _load_rapid_sampler_module()
-    states = _rapid_states(module, logits)
 
     if penalties is not None:
         assert penalties.device == logits.device and penalties.dtype == torch.float32
@@ -699,6 +744,9 @@ def rapid_sample(
             penalty_indices = torch.arange(
                 batch_size, dtype=torch.int32, device=logits.device
             )
+
+        module = _load_rapid_sampler_module()
+        states = _rapid_states(module, logits, state_cache)
 
         if penalty_indices is not None:
             penalty_indices = _rapid_vector(
@@ -801,6 +849,7 @@ def rapid_sample(
             ),
             return_logprobs=return_logprobs,
         )
+
 
 
 def flashinfer_sample(
