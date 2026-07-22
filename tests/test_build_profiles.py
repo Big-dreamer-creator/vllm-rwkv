@@ -13,10 +13,10 @@ from tools.build_profiles import (
 )
 
 
-def test_build_profile_defaults_to_full(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_profile_defaults_to_rwkv(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("VLLM_BUILD_PROFILE", raising=False)
 
-    assert resolve_build_profile() == "full"
+    assert resolve_build_profile() == "rwkv"
 
 
 def test_build_profile_accepts_rwkv(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -25,12 +25,22 @@ def test_build_profile_accepts_rwkv(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resolve_build_profile() == "rwkv"
 
 
+def test_build_profile_rejects_full(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("VLLM_BUILD_PROFILE", "full")
+
+    with pytest.raises(
+        ValueError,
+        match=r"VLLM_BUILD_PROFILE=full is disabled; only rwkv is supported",
+    ):
+        resolve_build_profile()
+
+
 def test_build_profile_rejects_unknown_value(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("VLLM_BUILD_PROFILE", "attention")
 
     with pytest.raises(
         ValueError,
-        match=r"attention.*accepted values.*full.*rwkv",
+        match=r"attention.*accepted values.*rwkv",
     ):
         resolve_build_profile()
 
@@ -51,24 +61,27 @@ def test_rwkv_profile_selects_only_required_extensions() -> None:
         "vllm.rwkv7_ops",
     ]
 
-    assert select_extension_names(full_names, "full") == full_names
     assert select_extension_names(full_names, "rwkv") == list(RWKV_EXTENSION_NAMES)
+    with pytest.raises(ValueError, match=r"full.*disabled.*only rwkv"):
+        select_extension_names(full_names, "full")
 
 
 def test_switching_profile_forces_cmake_reconfiguration() -> None:
     build_temp = "build/temp.linux-x86_64-cpython-312"
     setup_source = (Path(__file__).parents[1] / "setup.py").read_text()
 
-    assert profile_build_temp(build_temp, "full") == build_temp
     assert profile_build_temp(build_temp, "rwkv") == f"{build_temp}-rwkv"
     assert '"-DVLLM_BUILD_PROFILE={}".format(VLLM_BUILD_PROFILE)' in setup_source
     assert '"-DCMAKE_SUPPRESS_REGENERATION=ON"' in setup_source
+    with pytest.raises(ValueError, match=r"full.*disabled.*only rwkv"):
+        profile_build_temp(build_temp, "full")
 
 
 def test_cmake_declares_profile_manifest() -> None:
     cmake = (Path(__file__).parents[1] / "CMakeLists.txt").read_text()
 
-    assert 'set(VLLM_BUILD_PROFILE "full" CACHE STRING' in cmake
+    assert 'set(VLLM_BUILD_PROFILE "rwkv" CACHE STRING' in cmake
+    assert "only rwkv is supported" in cmake
     assert "vllm_build_profile.json" in cmake
     assert "VLLM_EXTENSION_TARGETS" in cmake
     assert "VLLM_EXTERNAL_PROJECTS" in cmake
