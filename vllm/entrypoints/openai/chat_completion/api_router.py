@@ -74,6 +74,93 @@ async def create_chat_completion(request: ChatCompletionRequest, raw_request: Re
     return StreamingResponse(content=generator, media_type="text/event-stream")
 
 
+async def _rwkv_session_action(
+    action: str, session_id: str | None, raw_request: Request
+):
+    handler = chat(raw_request)
+    if handler is None:
+        raise NotImplementedError("The model does not support RWKV sessions")
+    try:
+        result = await handler.rwkv_session_action(action, session_id)
+    except KeyError as error:
+        return JSONResponse(
+            content={
+                "error": {"message": str(error), "type": "not_found", "code": 404}
+            },
+            status_code=HTTPStatus.NOT_FOUND,
+        )
+    except NotImplementedError as error:
+        return JSONResponse(
+            content={
+                "error": {
+                    "message": str(error),
+                    "type": "not_implemented",
+                    "code": HTTPStatus.NOT_IMPLEMENTED.value,
+                }
+            },
+            status_code=HTTPStatus.NOT_IMPLEMENTED.value,
+        )
+    except (RuntimeError, ValueError) as error:
+        return JSONResponse(
+            content={
+                "error": {
+                    "message": str(error),
+                    "type": "invalid_request_error",
+                    "code": HTTPStatus.CONFLICT.value,
+                }
+            },
+            status_code=HTTPStatus.CONFLICT.value,
+        )
+    except Exception as error:
+        # collective_rpc wraps worker-side KeyError in a generic Exception.
+        # Preserve the public 404 contract for missing sessions and avoid
+        # leaking an ASGI exception to clients for other backend failures.
+        message = str(error)
+        if "Unknown RWKV session" in message:
+            return JSONResponse(
+                content={
+                    "error": {
+                        "message": message,
+                        "type": "not_found",
+                        "code": HTTPStatus.NOT_FOUND.value,
+                    }
+                },
+                status_code=HTTPStatus.NOT_FOUND.value,
+            )
+        logger.exception("RWKV session action failed: %s", message)
+        return JSONResponse(
+            content={
+                "error": {
+                    "message": "RWKV session operation failed",
+                    "type": "internal_server_error",
+                    "code": HTTPStatus.INTERNAL_SERVER_ERROR.value,
+                }
+            },
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR.value,
+        )
+    return JSONResponse(content=result)
+
+
+@router.get("/v1/rwkv/sessions/{session_id}")
+async def get_rwkv_session(session_id: str, raw_request: Request):
+    return await _rwkv_session_action("get", session_id, raw_request)
+
+
+@router.post("/v1/rwkv/sessions/{session_id}/reset")
+async def reset_rwkv_session(session_id: str, raw_request: Request):
+    return await _rwkv_session_action("reset", session_id, raw_request)
+
+
+@router.delete("/v1/rwkv/sessions/{session_id}")
+async def delete_rwkv_session(session_id: str, raw_request: Request):
+    return await _rwkv_session_action("delete", session_id, raw_request)
+
+
+@router.post("/v1/rwkv/sessions/evict")
+async def evict_rwkv_sessions(raw_request: Request):
+    return await _rwkv_session_action("evict", None, raw_request)
+
+
 @router.post(
     "/v1/chat/completions/batch",
     dependencies=[Depends(validate_json_request)],

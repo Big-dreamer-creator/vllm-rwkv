@@ -7,6 +7,7 @@ from typing import Any
 import torch
 import torch.nn as nn
 
+import vllm.envs as envs
 from vllm.config import VllmConfig
 from vllm.config.compilation import CUDAGraphMode
 from vllm.logger import init_logger
@@ -50,6 +51,7 @@ class RWKV7ModelState(ModelState):
         self.scheduler_config = vllm_config.scheduler_config
         self.model = model
         self.device = device
+        self.session_ttl_seconds = max(0.0, envs.VLLM_RWKV_SESSION_TTL_SECONDS)
         self.max_num_reqs = self.scheduler_config.max_num_seqs
         self.cudagraph_padding_row = self.max_num_reqs
         self.num_state_rows = self.max_num_reqs + 1
@@ -270,6 +272,7 @@ class RWKV7ModelState(ModelState):
         return [req_id for _order, req_id in sorted(enumerate(req_ids), key=key)]
 
     def add_request(self, req_index: int, new_req_data: NewRequestData) -> None:
+        self.evict_expired_sessions()
         session_id = new_req_data.session_id
         if new_req_data.context_mode == "stateful":
             if not session_id:
@@ -293,9 +296,7 @@ class RWKV7ModelState(ModelState):
                 row = session.row
             self.req_id_to_index[new_req_data.req_id] = req_index
             self.req_id_to_session_id[new_req_data.req_id] = session_id
-            self.req_sampling_params[new_req_data.req_id] = (
-                new_req_data.sampling_params
-            )
+            self.req_sampling_params[new_req_data.req_id] = new_req_data.sampling_params
             session.request_id = new_req_data.req_id
             session.status = "active"
             session.last_active_at = time.monotonic()
@@ -370,6 +371,23 @@ class RWKV7ModelState(ModelState):
         )
         self._zero_row(row)
         return self.get_session(session_id)
+
+    def evict_expired_sessions(self, now: float | None = None) -> list[str]:
+        """Release detached sessions that have exceeded the configured TTL."""
+        if self.session_ttl_seconds <= 0:
+            return []
+        now = time.monotonic() if now is None else now
+        expired = [
+            session_id
+            for session_id, session in self.sessions.items()
+            if session.request_id is None
+            and now - session.last_active_at >= self.session_ttl_seconds
+        ]
+        for session_id in expired:
+            self.delete_session(session_id)
+        if expired:
+            logger.info("Evicted %d expired RWKV sessions", len(expired))
+        return expired
 
     def can_preserve_streaming_state(
         self, req_id: str, new_req_data: NewRequestData
@@ -623,9 +641,7 @@ class RWKV7ModelState(ModelState):
         decode_token_positions = [
             start for _batch_idx, _req_slot, _row, start in decode_entries
         ]
-        cudagraph_full_decode = bool(
-            getattr(input_batch, "rwkv_full_cudagraph", False)
-        )
+        cudagraph_full_decode = bool(getattr(input_batch, "rwkv_full_cudagraph", False))
         if cudagraph_full_decode:
             if prefill_entries:
                 raise RuntimeError("RWKV7 FULL CUDAGraph only supports decode batches")
@@ -740,8 +756,7 @@ class RWKV7ModelState(ModelState):
             batch_end - batch_start for batch_start, batch_end, *_ in prefill_groups
         )
         can_use_grouped_prefill = (
-            has_positive_prefill_lengths
-            and grouped_ranges == len(prefill_ranges)
+            has_positive_prefill_lengths and grouped_ranges == len(prefill_ranges)
         )
         can_use_varlen_prefill = (
             not can_use_grouped_prefill and has_positive_prefill_lengths

@@ -13,7 +13,7 @@ import numpy as np
 import pybase64 as base64
 from fastapi import Request
 
-from vllm.engine.protocol import EngineClient
+from vllm.engine.protocol import EngineClient, StreamingInput
 from vllm.entrypoints.chat_utils import (
     ChatTemplateContentFormatOption,
     ConversationMessage,
@@ -40,6 +40,7 @@ from vllm.entrypoints.openai.chat_completion.protocol import (
 )
 from vllm.entrypoints.openai.engine.protocol import (
     DeltaMessage,
+    ErrorInfo,
     ErrorResponse,
     FunctionCall,
     PerRequestTimingMetrics,
@@ -62,7 +63,7 @@ from vllm.parser import ParserManager
 from vllm.parser.abstract_parser import Parser
 from vllm.renderers import ChatParams
 from vllm.renderers.online_renderer import OnlineRenderer
-from vllm.sampling_params import BeamSearchParams, SamplingParams
+from vllm.sampling_params import BeamSearchParams, RequestOutputKind, SamplingParams
 from vllm.tokenizers import TokenizerLike
 from vllm.tokenizers.rwkv_defaults import (
     apply_rwkv_default_sampling_params,
@@ -199,6 +200,7 @@ class OpenAIServingChat(GenerateBaseServing):
         # Please use the Responses API instead.
         self.supports_code_interpreter = False
         self.python_tool = None
+        self._rwkv_session_locks: dict[str, asyncio.Lock] = {}
 
     def warmup(self) -> None:
         self.renderer.warmup(
@@ -208,6 +210,132 @@ class OpenAIServingChat(GenerateBaseServing):
                 chat_template_kwargs=self.default_chat_template_kwargs,
             )
         )
+
+    @staticmethod
+    def _rwkv_error(message: str, code: int, param: str | None = None) -> ErrorResponse:
+        return ErrorResponse(
+            error=ErrorInfo(
+                message=message,
+                type="invalid_request_error",
+                param=param,
+                code=code,
+            )
+        )
+
+    async def rwkv_session_action(
+        self, action: str, session_id: str | None = None
+    ) -> dict[str, Any] | list[str]:
+        """Inspect or mutate a recurrent-state session on all model workers."""
+        lock = None
+        if session_id and action in {"get", "reset", "delete"}:
+            lock = self._rwkv_lock(session_id)
+            await lock.acquire()
+        try:
+            results = await self.engine_client.collective_rpc(
+                "rwkv_session_action", args=(action, session_id)
+            )
+        finally:
+            if lock is not None:
+                self._finish_rwkv_lock(session_id, lock)
+        if not results:
+            raise RuntimeError("RWKV session action returned no worker result")
+        return results[0]
+
+    def _rwkv_lock(self, session_id: str) -> asyncio.Lock:
+        return self._rwkv_session_locks.setdefault(session_id, asyncio.Lock())
+
+    def _finish_rwkv_lock(self, session_id: str | None, lock: asyncio.Lock) -> None:
+        lock.release()
+        if (
+            session_id is not None
+            and not lock.locked()
+            and not getattr(lock, "_waiters", None)
+        ):
+            self._rwkv_session_locks.pop(session_id, None)
+
+    async def _validate_rwkv_request(
+        self, request: ChatCompletionRequest
+    ) -> ErrorResponse | None:
+        if request.rwkv_context_mode is None:
+            if request.rwkv_session_id is not None:
+                return self._rwkv_error(
+                    "rwkv_session_id requires rwkv_context_mode='stateful'",
+                    HTTPStatus.BAD_REQUEST,
+                    "rwkv_session_id",
+                )
+            return None
+        if request.rwkv_context_mode != "stateful":
+            if request.rwkv_session_id is not None:
+                return self._rwkv_error(
+                    "rwkv_session_id is only valid for stateful RWKV requests",
+                    HTTPStatus.BAD_REQUEST,
+                    "rwkv_session_id",
+                )
+            return None
+        if not request.rwkv_session_id:
+            return self._rwkv_error(
+                "rwkv_session_id is required for stateful RWKV requests",
+                HTTPStatus.BAD_REQUEST,
+                "rwkv_session_id",
+            )
+        if request.n not in (None, 1):
+            return self._rwkv_error(
+                "stateful RWKV requests require n=1",
+                HTTPStatus.BAD_REQUEST,
+                "n",
+            )
+        if request.stop:
+            return self._rwkv_error(
+                "stateful RWKV requests do not support stop strings",
+                HTTPStatus.BAD_REQUEST,
+                "stop",
+            )
+        action = (
+            "ensure_create"
+            if request.rwkv_session_action == "create"
+            else "ensure_continue"
+        )
+        try:
+            await self.rwkv_session_action(action, request.rwkv_session_id)
+        except Exception as error:
+            if (
+                request.rwkv_session_action == "continue"
+                and "Unknown RWKV session" in str(error)
+            ):
+                return self._rwkv_error(
+                    "RWKV session is unavailable; replay history with "
+                    "rwkv_session_action='create'",
+                    HTTPStatus.GONE,
+                    "rwkv_session_id",
+                )
+            if request.rwkv_session_action == "create":
+                return self._rwkv_error(
+                    str(error), HTTPStatus.CONFLICT, "rwkv_session_id"
+                )
+            raise
+        return None
+
+    @staticmethod
+    async def _rwkv_input_stream(
+        engine_input: EngineInput, session_id: str
+    ) -> AsyncGenerator[StreamingInput, None]:
+        yield StreamingInput(
+            prompt=engine_input,
+            session_id=session_id,
+            context_mode="stateful",
+        )
+
+    async def _release_rwkv_lock(
+        self,
+        generator: AsyncIterator[RequestOutput],
+        lock: asyncio.Lock,
+        session_id: str | None,
+    ) -> AsyncGenerator[RequestOutput, None]:
+        try:
+            async for result in generator:
+                yield result
+        finally:
+            self._finish_rwkv_lock(session_id, lock)
 
     def _effective_chat_template_kwargs(
         self, request: ChatCompletionRequest
@@ -269,6 +397,21 @@ class OpenAIServingChat(GenerateBaseServing):
         request: ChatCompletionRequest,
         raw_request: Request | None = None,
     ) -> AsyncGenerator[str, None] | ChatCompletionResponse | ErrorResponse:
+        rwkv_lock: asyncio.Lock | None = None
+        if request.rwkv_context_mode == "stateful" and request.rwkv_session_id:
+            rwkv_lock = self._rwkv_lock(request.rwkv_session_id)
+            await rwkv_lock.acquire()
+        try:
+            validation_error = await self._validate_rwkv_request(request)
+        except BaseException:
+            if rwkv_lock is not None:
+                self._finish_rwkv_lock(request.rwkv_session_id, rwkv_lock)
+            raise
+        if validation_error is not None:
+            if rwkv_lock is not None:
+                self._finish_rwkv_lock(request.rwkv_session_id, rwkv_lock)
+            return validation_error
+
         # Streaming response
         tokenizer = self.renderer.tokenizer
         assert tokenizer is not None
@@ -283,6 +426,8 @@ class OpenAIServingChat(GenerateBaseServing):
             )
         result = await self.render_chat_request(request)
         if isinstance(result, ErrorResponse):
+            if rwkv_lock is not None:
+                self._finish_rwkv_lock(request.rwkv_session_id, rwkv_lock)
             return result
 
         conversation, engine_inputs = result
@@ -351,7 +496,52 @@ class OpenAIServingChat(GenerateBaseServing):
                 else await self._get_trace_headers(raw_request.headers)
             )
 
-            if isinstance(sampling_params, BeamSearchParams):
+            if not request.include_reasoning or request._grammar_from_tool_parser:
+                reasoning_ended = True
+            elif parser is not None and parser.reasoning_parser is not None:
+                reasoning_ended = parser.is_reasoning_end(prompt_token_ids or [])
+            else:
+                reasoning_ended = None
+
+            if request.rwkv_context_mode == "stateful":
+                if len(engine_inputs) != 1 or isinstance(
+                    sampling_params, BeamSearchParams
+                ):
+                    if rwkv_lock is not None:
+                        self._finish_rwkv_lock(request.rwkv_session_id, rwkv_lock)
+                    return self._rwkv_error(
+                        "stateful RWKV supports one sampling request only",
+                        HTTPStatus.BAD_REQUEST,
+                    )
+                if sampling_params.output_kind == RequestOutputKind.FINAL_ONLY:
+                    sampling_params.output_kind = RequestOutputKind.CUMULATIVE
+                sampling_params.stop = None
+                generator = self.engine_client.generate(
+                    self._rwkv_input_stream(
+                        engine_input,
+                        request.rwkv_session_id,  # type: ignore[arg-type]
+                    ),
+                    sampling_params,
+                    sub_request_id,
+                    lora_request=lora_request,
+                    trace_headers=trace_headers,
+                    priority=request.priority,
+                    data_parallel_rank=data_parallel_rank,
+                    reasoning_ended=reasoning_ended,
+                    reasoning_parser_kwargs=(
+                        {
+                            "chat_template_kwargs": chat_template_kwargs,
+                        }
+                        if parser is not None and parser.reasoning_parser is not None
+                        else None
+                    ),
+                )
+                assert rwkv_lock is not None
+                generator = self._release_rwkv_lock(
+                    generator, rwkv_lock, request.rwkv_session_id
+                )
+                rwkv_lock = None
+            elif isinstance(sampling_params, BeamSearchParams):
                 generator = self.beam_search(
                     prompt=engine_input,
                     request_id=sub_request_id,
@@ -360,18 +550,6 @@ class OpenAIServingChat(GenerateBaseServing):
                     trace_headers=trace_headers,
                 )
             else:
-                if not request.include_reasoning:
-                    reasoning_ended = True
-                elif request._grammar_from_tool_parser:
-                    # The Mistral grammar already includes an optional
-                    # `think?` rule that handles both reasoning and
-                    # non-reasoning outputs.
-                    reasoning_ended = True
-                elif parser is not None and parser.reasoning_parser is not None:
-                    reasoning_ended = parser.is_reasoning_end(prompt_token_ids or [])
-                else:
-                    reasoning_ended = None
-
                 generator = self.engine_client.generate(
                     engine_input,
                     sampling_params,
@@ -390,6 +568,8 @@ class OpenAIServingChat(GenerateBaseServing):
 
             generators.append(generator)
 
+        if rwkv_lock is not None:
+            self._finish_rwkv_lock(request.rwkv_session_id, rwkv_lock)
         assert len(generators) == 1
         (result_generator,) = generators
 

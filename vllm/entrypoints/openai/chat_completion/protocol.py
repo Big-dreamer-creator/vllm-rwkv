@@ -471,6 +471,24 @@ class ChatCompletionRequest(OpenAIBaseModel):
         ),
     )
 
+    # RWKV recurrent-state extension. In stateful mode, ``messages`` contains
+    # only the new incremental turn; the server owns the accumulated state.
+    rwkv_context_mode: Literal["sliding", "stateful"] | None = Field(
+        default=None,
+        description="Use RWKV stateful continuation instead of sliding context.",
+    )
+    rwkv_session_id: str | None = Field(
+        default=None,
+        description="Session key used with rwkv_context_mode='stateful'.",
+    )
+    rwkv_session_action: Literal["create", "continue"] = Field(
+        default="create",
+        description=(
+            "Create a new RWKV session or continue an existing one. "
+            "After a restart, replay history with action='create'."
+        ),
+    )
+
     repetition_detection: RepetitionDetectionParams | None = Field(
         default=None,
         description="Parameters for detecting repetitive N-gram patterns "

@@ -942,6 +942,35 @@ class Worker(WorkerBase):
     def get_model(self) -> nn.Module:
         return self.model_runner.get_model()
 
+    def rwkv_session_action(
+        self, action: str, session_id: str | None = None
+    ) -> dict[str, Any] | list[str]:
+        """Inspect or mutate an RWKV recurrent-state session."""
+        model_state = getattr(self.model_runner, "model_state", None)
+        if model_state is None or not model_state.supports_stateful_sessions:
+            raise NotImplementedError("RWKV stateful sessions are not available")
+        if action == "evict":
+            return model_state.evict_expired_sessions()
+        if not session_id:
+            raise ValueError("session_id is required for RWKV session actions")
+        if action == "ensure_create":
+            try:
+                model_state.get_session(session_id)
+            except KeyError:
+                return {"session_id": session_id, "status": "new"}
+            raise RuntimeError(f"RWKV session {session_id!r} already exists")
+        if action == "ensure_continue":
+            return model_state.get_session(session_id)
+        if action == "get":
+            return model_state.get_session(session_id)
+        if action == "reset":
+            model_state.reset_session(session_id)
+            return model_state.get_session(session_id)
+        if action == "delete":
+            model_state.delete_session(session_id)
+            return {"session_id": session_id, "status": "deleted"}
+        raise ValueError(f"Unknown RWKV session action: {action!r}")
+
     def get_draft_model(self) -> nn.Module | None:
         return self.model_runner.get_draft_model()
 

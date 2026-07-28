@@ -130,3 +130,16 @@ def test_stateful_update_rejects_backwards_progress_and_wrong_session() -> None:
         state.can_preserve_streaming_state(
             "req-a", _request("req-a", "session-b", [1, 2, 3], 2)
         )
+
+
+def test_detached_sessions_are_reclaimed_after_ttl() -> None:
+    state = _model_state()
+    state.session_ttl_seconds = 10
+    state.add_request(0, _request("req-a", "session-a", [1], 0))
+    state.remove_request("req-a")
+    state.sessions["session-a"].last_active_at = 100
+
+    assert state.evict_expired_sessions(now=109) == []
+    assert state.evict_expired_sessions(now=110) == ["session-a"]
+    with pytest.raises(KeyError):
+        state.get_session("session-a")
