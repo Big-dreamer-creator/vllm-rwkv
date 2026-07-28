@@ -470,6 +470,8 @@ class AsyncLLM(EngineClient):
                         prompt=input_chunk.prompt,
                         params=sp,
                         resumable=True,
+                        session_id=input_chunk.session_id,
+                        context_mode=input_chunk.context_mode,
                         **inputs,  # type: ignore[arg-type]
                     )
                     req.external_req_id = request_id

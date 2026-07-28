@@ -124,6 +124,8 @@ class StreamingUpdate:
     prompt_token_ids: list[int] | None
     arrival_time: float
     final: bool = False
+    session_id: str | None = None
+    context_mode: str = "sliding"
 
 
 class RequestState:
@@ -149,6 +151,8 @@ class RequestState:
         n: int | None = None,
         temperature: float | None = None,
         stream_input: bool = False,
+        session_id: str | None = None,
+        context_mode: str = "sliding",
     ):
         self.request_id = request_id
         self.external_req_id = external_req_id
@@ -169,6 +173,8 @@ class RequestState:
         self.top_p = top_p
         self.n = n
         self.temperature = temperature
+        self.session_id = session_id
+        self.context_mode = context_mode
         self.is_prefilling = True
         self.queue = queue
         self.num_cached_tokens = 0
@@ -191,6 +197,14 @@ class RequestState:
 
     def apply_streaming_update(self, update: StreamingUpdate) -> None:
         # Apply the update to the request state.
+        if self.context_mode == "stateful":
+            if (
+                update.context_mode != "stateful"
+                or update.session_id != self.session_id
+            ):
+                raise ValueError(
+                    "stateful streaming update must keep the same session_id"
+                )
         self.streaming_input = not update.final
         # TODO also include relevant output tokens in new prompt here
         #     (match scheduler behavior).
@@ -268,6 +282,8 @@ class RequestState:
             log_stats=log_stats,
             stream_interval=stream_interval,
             stream_input=request.resumable,
+            session_id=request.session_id,
+            context_mode=request.context_mode,
         )
 
     def make_request_output(
@@ -573,6 +589,8 @@ class OutputProcessor:
             prompt=prompt,
             prompt_token_ids=request.prompt_token_ids,
             arrival_time=request.arrival_time,
+            session_id=request.session_id,
+            context_mode=request.context_mode,
         )
 
         # Apply request updates now if the last input already completed.

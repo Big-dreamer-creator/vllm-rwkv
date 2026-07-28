@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+import time
+from dataclasses import dataclass
 from typing import Any
 
 import torch
@@ -20,8 +22,21 @@ from vllm.v1.worker.utils import AttentionGroup
 logger = init_logger(__name__)
 
 
+@dataclass
+class _RWKVSession:
+    session_id: str
+    row: int
+    state_version: int = 0
+    processed_token_count: int = 0
+    last_active_at: float = 0.0
+    status: str = "active"
+    request_id: str | None = None
+
+
 class RWKV7ModelState(ModelState):
     """Dense batched recurrent state for RWKV7."""
+
+    supports_stateful_sessions = True
 
     def __init__(
         self,
@@ -96,6 +111,9 @@ class RWKV7ModelState(ModelState):
         # Maps request ids to stable RWKV state slots. A vLLM request index can
         # change after request metadata is condensed, but this slot must not.
         self.req_id_to_index: dict[str, int] = {}
+        self.req_id_to_session_id: dict[str, str] = {}
+        self.req_sampling_params: dict[str, Any] = {}
+        self.sessions: dict[str, _RWKVSession] = {}
         self.req_slot_to_row = [-1] * self.max_num_reqs
         self.row_to_req_slot = [-1] * self.max_num_reqs
         self.free_rows = set(range(self.max_num_reqs))
@@ -106,7 +124,8 @@ class RWKV7ModelState(ModelState):
     def _reset_mappings(self) -> None:
         self.req_slot_to_row = [-1] * self.max_num_reqs
         self.row_to_req_slot = [-1] * self.max_num_reqs
-        self.free_rows = set(range(self.max_num_reqs))
+        reserved_rows = {session.row for session in self.sessions.values()}
+        self.free_rows = set(range(self.max_num_reqs)) - reserved_rows
         self.decode_req_slots = set()
         self._prefill_req_slots = []
         self._prefill_becomes_decode = []
@@ -251,6 +270,47 @@ class RWKV7ModelState(ModelState):
         return [req_id for _order, req_id in sorted(enumerate(req_ids), key=key)]
 
     def add_request(self, req_index: int, new_req_data: NewRequestData) -> None:
+        session_id = new_req_data.session_id
+        if new_req_data.context_mode == "stateful":
+            if not session_id:
+                raise ValueError("stateful context_mode requires a session_id")
+            if new_req_data.mm_features:
+                raise ValueError("RWKV stateful mode does not support multimodal input")
+            if new_req_data.lora_request is not None:
+                raise ValueError("RWKV stateful mode does not support LoRA input")
+            session = self.sessions.get(session_id)
+            if session is None:
+                self.create_session(session_id)
+                session = self.sessions[session_id]
+                row = session.row
+            elif session.request_id is not None:
+                raise RuntimeError(
+                    f"RWKV session {session_id!r} is already bound to "
+                    f"request {session.request_id!r}"
+                )
+            else:
+                self.free_rows.discard(session.row)
+                row = session.row
+            self.req_id_to_index[new_req_data.req_id] = req_index
+            self.req_id_to_session_id[new_req_data.req_id] = session_id
+            self.req_sampling_params[new_req_data.req_id] = (
+                new_req_data.sampling_params
+            )
+            session.request_id = new_req_data.req_id
+            session.status = "active"
+            session.last_active_at = time.monotonic()
+            self.req_slot_to_row[req_index] = row
+            self.row_to_req_slot[row] = req_index
+            logger.debug(
+                "RWKV stateful request attached: session_id=%s request_id=%s "
+                "row=%d state_version=%d",
+                session_id,
+                new_req_data.req_id,
+                row,
+                session.state_version,
+            )
+            return
+
         self.req_id_to_index[new_req_data.req_id] = req_index
         if not self.free_rows:
             raise RuntimeError("RWKV7 state pool is full")
@@ -267,6 +327,25 @@ class RWKV7ModelState(ModelState):
         row = self.req_slot_to_row[req_index]
         if row == -1:
             return
+        session_id = self.req_id_to_session_id.pop(req_id, None)
+        if session_id is not None:
+            self.req_sampling_params.pop(req_id, None)
+            session = self.sessions[session_id]
+            self.decode_req_slots.discard(req_index)
+            self.req_slot_to_row[req_index] = -1
+            self.row_to_req_slot[row] = -1
+            session.request_id = None
+            session.status = "detached"
+            session.last_active_at = time.monotonic()
+            logger.debug(
+                "RWKV stateful request detached: session_id=%s request_id=%s "
+                "row=%d state_version=%d",
+                session_id,
+                req_id,
+                row,
+                session.state_version,
+            )
+            return
         if req_index in self.decode_req_slots:
             self._remove_decode_row(req_index, row)
         else:
@@ -274,6 +353,133 @@ class RWKV7ModelState(ModelState):
             self.row_to_req_slot[row] = -1
             self.free_rows.add(row)
             self._zero_row(row)
+
+    def create_session(self, session_id: str) -> dict[str, Any]:
+        if not session_id:
+            raise ValueError("session_id must not be empty")
+        if session_id in self.sessions:
+            raise ValueError(f"RWKV session {session_id!r} already exists")
+        if not self.free_rows:
+            raise RuntimeError("RWKV7 state pool is full")
+        row = min(self.free_rows)
+        self.free_rows.remove(row)
+        self.sessions[session_id] = _RWKVSession(
+            session_id=session_id,
+            row=row,
+            last_active_at=time.monotonic(),
+        )
+        self._zero_row(row)
+        return self.get_session(session_id)
+
+    def can_preserve_streaming_state(
+        self, req_id: str, new_req_data: NewRequestData
+    ) -> bool:
+        if new_req_data.context_mode != "stateful":
+            return False
+        session_id = new_req_data.session_id
+        if not session_id:
+            raise ValueError("stateful context_mode requires a session_id")
+        if req_id not in self.req_id_to_index:
+            return False
+        current_session_id = self.req_id_to_session_id.get(req_id)
+        if current_session_id != session_id:
+            raise RuntimeError(
+                f"Request {req_id!r} is bound to session "
+                f"{current_session_id!r}, not {session_id!r}"
+            )
+        if new_req_data.mm_features:
+            raise ValueError("RWKV stateful mode does not support multimodal input")
+        if new_req_data.lora_request is not None:
+            raise ValueError("RWKV stateful mode does not support LoRA input")
+        if self.req_sampling_params.get(req_id) != new_req_data.sampling_params:
+            raise ValueError(
+                "RWKV stateful streaming updates cannot change sampling parameters"
+            )
+        session = self.sessions[session_id]
+        if new_req_data.num_computed_tokens < session.processed_token_count:
+            raise RuntimeError(
+                f"RWKV stateful update moved backwards: session={session_id!r}, "
+                f"old={session.processed_token_count}, "
+                f"new={new_req_data.num_computed_tokens}"
+            )
+        return True
+
+    def update_streaming_state(
+        self, req_index: int, new_req_data: NewRequestData
+    ) -> None:
+        req_id = new_req_data.req_id
+        session_id = self.req_id_to_session_id.get(req_id)
+        if session_id is None:
+            raise RuntimeError(f"RWKV session for request {req_id!r} is missing")
+        session = self.sessions[session_id]
+        expected_row = self.req_slot_to_row[req_index]
+        if expected_row != session.row:
+            raise RuntimeError(
+                f"RWKV state row changed during streaming update: "
+                f"session={session_id!r}, expected={session.row}, got={expected_row}"
+            )
+        session.processed_token_count = new_req_data.num_computed_tokens
+        session.state_version += 1
+        session.last_active_at = time.monotonic()
+        logger.debug(
+            "RWKV stateful update retained: session_id=%s request_id=%s "
+            "processed_token_count=%d state_version=%d row=%d",
+            session_id,
+            req_id,
+            session.processed_token_count,
+            session.state_version,
+            session.row,
+        )
+
+    def update_session(self, session_id: str, processed_token_count: int) -> None:
+        session = self.sessions.get(session_id)
+        if session is None:
+            raise KeyError(f"Unknown RWKV session {session_id!r}")
+        if processed_token_count < session.processed_token_count:
+            raise ValueError("session token position cannot move backwards")
+        session.processed_token_count = processed_token_count
+        session.state_version += 1
+        session.last_active_at = time.monotonic()
+
+    def get_session(self, session_id: str) -> dict[str, Any]:
+        session = self.sessions.get(session_id)
+        if session is None:
+            raise KeyError(f"Unknown RWKV session {session_id!r}")
+        return {
+            "session_id": session.session_id,
+            "processed_token_count": session.processed_token_count,
+            "state_version": session.state_version,
+            "last_active_at": session.last_active_at,
+            "status": session.status,
+            "request_id": session.request_id,
+            "row": session.row,
+        }
+
+    def reset_session(self, session_id: str) -> None:
+        session = self.sessions.get(session_id)
+        if session is None:
+            raise KeyError(f"Unknown RWKV session {session_id!r}")
+        if session.request_id is not None:
+            raise RuntimeError(
+                f"Cannot reset active RWKV session {session_id!r}; detach it first"
+            )
+        self._zero_row(session.row)
+        session.processed_token_count = 0
+        session.state_version += 1
+        session.status = "reset"
+        session.last_active_at = time.monotonic()
+
+    def delete_session(self, session_id: str) -> None:
+        session = self.sessions.get(session_id)
+        if session is None:
+            raise KeyError(f"Unknown RWKV session {session_id!r}")
+        if session.request_id is not None:
+            raise RuntimeError(
+                f"Cannot delete active RWKV session {session_id!r}; detach it first"
+            )
+        self._zero_row(session.row)
+        self.free_rows.add(session.row)
+        del self.sessions[session_id]
 
     def _remove_decode_row(self, req_index: int, row: int) -> None:
         self.decode_req_slots.remove(req_index)

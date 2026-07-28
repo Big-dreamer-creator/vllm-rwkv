@@ -136,6 +136,11 @@ class EngineCoreRequest(
     # KV-transfer request is rejected on the D node before engine admission.
     abort_immediately: bool = False
 
+    # RWKV recurrent-state continuation metadata. Kept at the end of the
+    # array-like struct so existing serialized request fields retain order.
+    session_id: str | None = None
+    context_mode: Literal["sliding", "stateful"] = "sliding"
+
     @property
     def params(self) -> SamplingParams | PoolingParams:
         """Return the processed params (sampling or pooling)."""

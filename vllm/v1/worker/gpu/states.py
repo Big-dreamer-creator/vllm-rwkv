@@ -112,6 +112,27 @@ class RequestState:
 
         self.draft_tokens[req_idx].zero_()
 
+    def update_request(
+        self,
+        req_id: str,
+        prompt_len: int,
+        all_token_ids: list[int],
+        num_computed_tokens: int,
+        max_tokens: int,
+    ) -> None:
+        """Update request metadata without allocating a new request slot."""
+        req_idx = self.req_id_to_index.get(req_id)
+        if req_idx is None:
+            raise KeyError(f"Request {req_id!r} is not registered")
+        self.max_seq_len[req_idx] = prompt_len + max_tokens
+        self.prompt_len.np[req_idx] = prompt_len
+        self.prefill_len.np[req_idx] = len(all_token_ids)
+        self.total_len.stage_write_elem(req_idx, len(all_token_ids))
+        self.all_token_ids.stage_write(req_idx, 0, all_token_ids)
+        self.num_computed_prefill_tokens[req_idx] = num_computed_tokens
+        self.num_computed_tokens_np[req_idx] = num_computed_tokens
+        self.num_computed_tokens.stage_write_elem(req_idx, num_computed_tokens)
+
     def apply_staged_writes(self) -> None:
         self.prompt_len.copy_to_uva()
         self.prefill_len.copy_to_uva()

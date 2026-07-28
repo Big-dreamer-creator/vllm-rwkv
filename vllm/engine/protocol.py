@@ -4,7 +4,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, Iterable, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from vllm.config import ModelConfig, VllmConfig
 from vllm.distributed.weight_transfer.base import (
@@ -35,6 +35,8 @@ class StreamingInput:
 
     prompt: EngineInput
     sampling_params: SamplingParams | None = None
+    session_id: str | None = None
+    context_mode: Literal["sliding", "stateful"] = "sliding"
 
 
 class EngineClient(ABC):

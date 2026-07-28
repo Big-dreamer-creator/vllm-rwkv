@@ -42,6 +42,8 @@ class StreamingUpdate:
     max_tokens: int
     arrival_time: float
     sampling_params: SamplingParams | None
+    session_id: str | None = None
+    context_mode: str = "sliding"
 
     @classmethod
     def from_request(cls, request: "Request") -> "StreamingUpdate | None":
@@ -53,6 +55,8 @@ class StreamingUpdate:
             max_tokens=request.max_tokens,
             arrival_time=request.arrival_time,
             sampling_params=request.sampling_params,
+            session_id=request.session_id,
+            context_mode=request.context_mode,
         )
 
 
@@ -77,6 +81,8 @@ class Request:
         reasoning_ended: bool | None = None,
         reasoning_parser_kwargs: dict[str, Any] | None = None,
         abort_immediately: bool = False,
+        session_id: str | None = None,
+        context_mode: str = "sliding",
     ) -> None:
         self.request_id = request_id
         self.client_index = client_index
@@ -209,6 +215,8 @@ class Request:
 
         # Used for streaming
         self.resumable = resumable
+        self.session_id = session_id
+        self.context_mode = context_mode
         # None entry in the queue means finished.
         self.streaming_queue: deque[StreamingUpdate | None] | None = None
 
@@ -241,6 +249,8 @@ class Request:
             reasoning_ended=request.reasoning_ended,
             reasoning_parser_kwargs=request.reasoning_parser_kwargs,
             abort_immediately=request.abort_immediately,
+            session_id=request.session_id,
+            context_mode=request.context_mode,
         )
 
     def append_output_token_ids(

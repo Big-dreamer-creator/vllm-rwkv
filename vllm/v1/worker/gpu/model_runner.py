@@ -793,6 +793,35 @@ class GPUModelRunner(LoRAModelRunnerMixin):
             assert new_req_data.prefill_token_ids is not None
             req_id = new_req_data.req_id
 
+            if (
+                new_req_data.context_mode == "stateful"
+                and not self.model_state.supports_stateful_sessions
+            ):
+                raise ValueError(
+                    "context_mode='stateful' is only supported by RWKV state models"
+                )
+
+            if self.model_state.can_preserve_streaming_state(req_id, new_req_data):
+                req_index = self.req_states.req_id_to_index.get(req_id)
+                if req_index is None:
+                    raise RuntimeError(
+                        f"Request state for stateful update {req_id!r} is missing"
+                    )
+                sampling_params = new_req_data.sampling_params
+                max_tokens = sampling_params.max_tokens if sampling_params else 1
+                self.req_states.update_request(
+                    req_id=req_id,
+                    prompt_len=len(new_req_data.prompt_token_ids),
+                    all_token_ids=new_req_data.prefill_token_ids,
+                    num_computed_tokens=new_req_data.num_computed_tokens,
+                    max_tokens=max_tokens,
+                )
+                self.model_state.update_streaming_state(req_index, new_req_data)
+                self.block_tables.append_block_ids(
+                    req_index, new_req_data.block_ids, overwrite=True
+                )
+                continue
+
             # Streaming input update: request already exists from a prior
             # chunk. Remove old state so it can be cleanly re-added below
             # with the updated prompt_token_ids and mm_features.

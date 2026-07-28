@@ -1312,6 +1312,14 @@ class Scheduler(SchedulerInterface):
 
         Discards the last sampled output token from the prior input chunk.
         """
+        if session.context_mode == "stateful":
+            if (
+                update.context_mode != "stateful"
+                or update.session_id != session.session_id
+            ):
+                raise ValueError(
+                    "stateful streaming update must keep the same session_id"
+                )
 
         # Current streaming input behaviour: Keep only computed output tokens
         # (discard final sampled output token).

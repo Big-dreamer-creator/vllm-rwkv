@@ -13,6 +13,7 @@ from vllm.v1.core.sched.output import (
     NewRequestData,
     SchedulerOutput,
 )
+from vllm.v1.worker.gpu.buffer_utils import is_uva_available
 from vllm.v1.worker.gpu.model_runner import GPUModelRunner
 from vllm.v1.worker.gpu.states import RequestState
 
@@ -23,6 +24,9 @@ pytestmark = pytest.mark.cpu_test
 def mock_model_runner_with_req_states():
     """Create a mock MRv2 GPUModelRunner with a real RequestState."""
 
+    if not is_uva_available():
+        pytest.skip("RequestState requires UVA for its CPU test fixture")
+
     runner = Mock(spec=GPUModelRunner)
     runner.req_states = RequestState(
         max_num_reqs=10,
@@ -31,11 +35,10 @@ def mock_model_runner_with_req_states():
         num_speculative_steps=0,
         vocab_size=32000,
         device=torch.device("cpu"),
-        model_dtype=torch.float32,
-        cache_draft_logits=False,
     )
     runner.encoder_cache = None
     runner.model_state = Mock()
+    runner.model_state.can_preserve_streaming_state.return_value = False
     runner.block_tables = Mock()
     runner.lora_state = Mock()
     runner.sampler = None
@@ -63,6 +66,50 @@ def _make_scheduler_output(new_reqs):
         finished_req_ids=set(),
         free_encoder_mm_hashes=[],
     )
+
+
+def test_stateful_streaming_update_retains_request_and_model_state():
+    runner = Mock(spec=GPUModelRunner)
+    runner.req_states = Mock()
+    runner.req_states.req_id_to_index = {"stateful_req": 4}
+    runner.encoder_cache = None
+    runner.model_state = Mock()
+    runner.model_state.can_preserve_streaming_state.return_value = True
+    runner.block_tables = Mock()
+    runner.lora_state = Mock()
+    runner.sampler = None
+    runner.prompt_logprobs_worker = None
+    runner.is_last_pp_rank = False
+    runner._remove_request = Mock()
+    runner.req_states.apply_staged_writes = Mock()
+    runner.model_state.apply_staged_writes = Mock()
+    runner.add_requests = GPUModelRunner.add_requests.__get__(runner)
+
+    req_data = NewRequestData(
+        req_id="stateful_req",
+        prompt_token_ids=[1, 2, 3],
+        prefill_token_ids=[1, 2, 3, 4],
+        mm_features=[],
+        sampling_params=None,
+        pooling_params=None,
+        block_ids=([0, 1],),
+        num_computed_tokens=3,
+        lora_request=None,
+        session_id="session-a",
+        context_mode="stateful",
+    )
+
+    runner.add_requests(_make_scheduler_output([req_data]))
+
+    runner._remove_request.assert_not_called()
+    runner.req_states.update_request.assert_called_once_with(
+        req_id="stateful_req",
+        prompt_len=3,
+        all_token_ids=[1, 2, 3, 4],
+        num_computed_tokens=3,
+        max_tokens=1,
+    )
+    runner.model_state.update_streaming_state.assert_called_once_with(4, req_data)
 
 
 def test_e2e_streaming_request_update_basic_flow(

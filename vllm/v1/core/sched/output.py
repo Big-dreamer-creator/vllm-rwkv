@@ -44,6 +44,8 @@ class NewRequestData:
 
     # Only used for v2 model runner.
     prefill_token_ids: list[int] | None = None
+    session_id: str | None = None
+    context_mode: str = "sliding"
 
     @classmethod
     def from_request(
@@ -64,6 +66,8 @@ class NewRequestData:
             prompt_embeds=request.prompt_embeds,
             prompt_is_token_ids=request.prompt_is_token_ids,
             prefill_token_ids=prefill_token_ids,
+            session_id=request.session_id,
+            context_mode=request.context_mode,
         )
 
     def __repr__(self) -> str:

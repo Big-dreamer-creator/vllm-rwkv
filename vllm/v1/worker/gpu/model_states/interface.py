@@ -37,6 +37,8 @@ class ModelSpecificAttnMetadata:
 
 
 class ModelState(ABC):
+    supports_stateful_sessions = False
+
     def __init__(
         self,
         vllm_config: VllmConfig,
@@ -91,6 +93,27 @@ class ModelState(ABC):
 
     def remove_request(self, req_id: str) -> None:
         return None
+
+    def can_preserve_streaming_state(
+        self, req_id: str, new_req_data: NewRequestData
+    ) -> bool:
+        """Return whether a streaming update can retain model-specific state."""
+        return False
+
+    def update_streaming_state(
+        self, req_index: int, new_req_data: NewRequestData
+    ) -> None:
+        """Update model-specific metadata after retaining a streaming state."""
+        return None
+
+    def reset_session(self, session_id: str) -> None:
+        raise KeyError(f"Unknown model state session {session_id!r}")
+
+    def delete_session(self, session_id: str) -> None:
+        raise KeyError(f"Unknown model state session {session_id!r}")
+
+    def get_session(self, session_id: str) -> dict[str, Any]:
+        raise KeyError(f"Unknown model state session {session_id!r}")
 
     def apply_staged_writes(self) -> None:
         return None
