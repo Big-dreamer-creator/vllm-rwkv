@@ -47,21 +47,17 @@ async def _run_one(
         seed=42,
         max_tokens=1,
     )
-    if mode == "stateful":
+    async def inputs():
+        for start in range(0, len(token_ids), chunk_size):
+            yield StreamingInput(
+                prompt=TokensPrompt(
+                    prompt_token_ids=token_ids[start : start + chunk_size]
+                ),
+                session_id=request_id if mode == "stateful" else None,
+                context_mode=mode,
+            )
 
-        async def inputs():
-            for start in range(0, len(token_ids), chunk_size):
-                yield StreamingInput(
-                    prompt=TokensPrompt(
-                        prompt_token_ids=token_ids[start : start + chunk_size]
-                    ),
-                    session_id=request_id,
-                    context_mode="stateful",
-                )
-
-        prompt = inputs()
-    else:
-        prompt = TokensPrompt(prompt_token_ids=token_ids)
+    prompt = inputs()
 
     output, timing = await _collect(
         engine.generate(prompt, params, request_id=request_id)
@@ -73,7 +69,7 @@ async def _run_one(
         "request_id": request_id,
         "context_mode": mode,
         "total_history_tokens": len(token_ids),
-        "chunk_size": chunk_size if mode == "stateful" else None,
+        "chunk_size": chunk_size,
         "output_token_ids": generated.token_ids,
         "output_text": generated.text,
         **timing,
@@ -137,7 +133,7 @@ def main() -> None:
     parser.add_argument("--tokenizer")
     parser.add_argument("--lengths", nargs="+", type=int, default=[8192, 12288, 20480])
     parser.add_argument("--chunk-size", type=int, default=2048)
-    parser.add_argument("--tensor-parallel-size", type=int, default=2)
+    parser.add_argument("--tensor-parallel-size", type=int, default=1)
     parser.add_argument("--max-model-len", type=int, default=32768)
     parser.add_argument("--context-window", type=int, default=8192)
     parser.add_argument("--max-num-seqs", type=int, default=8)
