@@ -34,6 +34,10 @@ from vllm.inputs import (
     SingletonPrompt,
     tokens_input,
 )
+from vllm.inputs.context_window import (
+    apply_context_window_to_tokenize_params,
+    resolve_context_window,
+)
 from vllm.logger import init_logger
 from vllm.parser import Parser, ParserManager
 from vllm.renderers import BaseRenderer, merge_kwargs
@@ -41,7 +45,12 @@ from vllm.renderers.inputs.preprocess import (
     parse_model_prompt,
     prompt_to_seq,
 )
-from vllm.tokenizers.rwkv_defaults import resolve_rwkv_tool_parser
+from vllm.tokenizers.rwkv_defaults import (
+    RWKV_NATIVE_CHAT_TEMPLATE,
+    is_rwkv_model_config,
+    resolve_rwkv_tool_parser,
+    trim_rwkv_chat_messages,
+)
 from vllm.utils.mistral import is_mistral_tokenizer, is_mistral_tool_parser
 from vllm.utils.mistral import mt as _mt
 
@@ -325,7 +334,17 @@ class OnlineRenderer:
             )
             for prompt in prompts
         ]
-        tok_params = request.build_tok_params(model_config)
+        context_window_strategy = getattr(
+            model_config, "context_window_strategy", "none"
+        )
+        context_window = resolve_context_window(
+            model_config, context_window_strategy
+        )
+        tok_params = apply_context_window_to_tokenize_params(
+            request.build_tok_params(model_config),
+            context_window,
+            context_window_strategy,
+        )
 
         return await renderer.render_cmpl_async(
             parsed_prompts,
@@ -365,7 +384,17 @@ class OnlineRenderer:
             ),
         )
 
-        tok_params = request.build_tok_params(self.model_config)
+        context_window_strategy = getattr(
+            self.model_config, "context_window_strategy", "none"
+        )
+        context_window = resolve_context_window(
+            self.model_config, context_window_strategy
+        )
+        tok_params = apply_context_window_to_tokenize_params(
+            request.build_tok_params(self.model_config),
+            context_window,
+            context_window_strategy,
+        )
         chat_params = request.build_chat_params(
             default_template, default_template_content_format
         ).with_defaults(
@@ -373,6 +402,19 @@ class OnlineRenderer:
             default_media_io_kwargs=(mm_config.media_io_kwargs if mm_config else None),
             default_mm_processor_kwargs=getattr(request, "mm_processor_kwargs", None),
         )
+
+        if (
+            is_rwkv_model_config(self.model_config)
+            and renderer.tokenizer is not None
+            and chat_params.chat_template in (None, RWKV_NATIVE_CHAT_TEMPLATE)
+        ):
+            messages = trim_rwkv_chat_messages(
+                messages,
+                tool_dicts,
+                renderer.tokenizer,
+                context_window,
+                chat_template_kwargs=chat_params.chat_template_kwargs,
+            )
 
         (conversation,), (engine_input,) = await renderer.render_chat_async(
             [messages],

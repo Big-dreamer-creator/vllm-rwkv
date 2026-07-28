@@ -190,6 +190,86 @@ def test_extracts_supported_single_tool_call(
     assert json.loads(call.function.arguments) == arguments
 
 
+def test_extracts_compact_json_tool_call() -> None:
+    tools = [_tool("get_weather")]
+    result = _parser(tools).extract_tool_calls(
+        '{"name":"get_weather","arguments":{"city":"Paris"}}',
+        _request(tools),
+    )
+
+    assert result.tools_called
+    assert result.content is None
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].function.name == "get_weather"
+    assert json.loads(result.tool_calls[0].function.arguments) == {"city": "Paris"}
+
+
+def test_extracts_compact_parallel_tool_calls() -> None:
+    tools = [_tool("get_weather"), _tool("get_forecast")]
+    text = (
+        '{"tool_calls":[{"name":"get_weather","arguments":{"city":"Paris"}},'
+        '{"name":"get_forecast","arguments":{"city":"Berlin"}}]}'
+    )
+
+    result = _parser(tools).extract_tool_calls(text, _request(tools))
+
+    assert result.tools_called
+    assert [
+        (call.function.name, json.loads(call.function.arguments))
+        for call in result.tool_calls
+    ] == [
+        ("get_weather", {"city": "Paris"}),
+        ("get_forecast", {"city": "Berlin"}),
+    ]
+
+
+def test_extracts_openai_style_parallel_tool_calls() -> None:
+    tools = [_tool("get_weather")]
+    text = (
+        '{"tool_calls":[{"id":"call_1","type":"function",'
+        '"function":{"name":"get_weather",'
+        '"arguments":"{\\"city\\":\\"Paris\\"}"}}]}'
+    )
+
+    result = _parser(tools).extract_tool_calls(text, _request(tools))
+
+    assert result.tools_called
+    assert result.content is None
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].function.name == "get_weather"
+    assert json.loads(result.tool_calls[0].function.arguments) == {"city": "Paris"}
+
+
+def test_trims_incomplete_parallel_envelope_from_content() -> None:
+    tools = [_tool("get_weather")]
+    text = (
+        "I will check that.\n"
+        '{"tool_calls":{"name":"get_weather",'
+        '"arguments":{"city":"Paris"}}'
+    )
+
+    result = _parser(tools).extract_tool_calls(text, _request(tools))
+
+    assert result.tools_called
+    assert result.content == "I will check that.\n"
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].function.name == "get_weather"
+    assert json.loads(result.tool_calls[0].function.arguments) == {"city": "Paris"}
+
+
+def test_invalid_markdown_call_does_not_hide_valid_call() -> None:
+    tools = [_tool("get_weather")]
+    text = '**Tool Call:**\n```json\n{"name": "get_weather"}\n```\n' + _tool_call(
+        "get_weather", {"city": "Paris"}
+    )
+
+    result = _parser(tools).extract_tool_calls(text, _request(tools))
+
+    assert result.tools_called
+    assert len(result.tool_calls) == 1
+    assert json.loads(result.tool_calls[0].function.arguments) == {"city": "Paris"}
+
+
 def test_extracts_parallel_markdown_tool_calls() -> None:
     tools = [_tool("get_weather"), _tool("get_forecast")]
     text = "\n".join(
@@ -297,3 +377,54 @@ def test_streams_bash_fence_as_content() -> None:
     )
 
     assert (content, tool_deltas) == (text, [])
+
+
+def test_streams_compact_json_tool_call() -> None:
+    tools = [_tool("get_weather")]
+    text = 'Checking.\n{"name":"get_weather",' '"arguments":{"city":"Paris"}}'
+
+    content, tool_deltas = _content_and_tool_deltas(
+        _stream(_parser(tools), text, _request(tools), chunk_size=3)
+    )
+
+    functions = [delta.function for delta in tool_deltas if delta.function]
+    assert content == "Checking.\n"
+    assert len(tool_deltas) > 1
+    assert tool_deltas[0].id is not None
+    assert all(delta.id is None for delta in tool_deltas[1:])
+    assert [function.name for function in functions if function.name] == ["get_weather"]
+    assert json.loads("".join(function.arguments or "" for function in functions)) == {
+        "city": "Paris"
+    }
+
+
+def test_streams_tool_call_without_whitespace_only_content() -> None:
+    tools = [_tool("get_weather")]
+    text = '\n{"name":"get_weather","arguments":{"city":"Paris"}}'
+
+    content, tool_deltas = _content_and_tool_deltas(
+        _stream(_parser(tools), text, _request(tools), chunk_size=3)
+    )
+
+    assert content == ""
+    functions = [delta.function for delta in tool_deltas if delta.function]
+    assert [function.name for function in functions if function.name] == [
+        "get_weather"
+    ]
+
+
+def test_streams_openai_style_json_tool_call() -> None:
+    tools = [_tool("get_weather")]
+    text = (
+        'Checking.\n{"tool_calls":[{"id":"call_1","type":"function",'
+        '"function":{"name":"get_weather",'
+        '"arguments":"{\\"city\\":\\"Paris\\"}"}}]}'
+    )
+
+    content, tool_deltas = _content_and_tool_deltas(
+        _stream(_parser(tools), text, _request(tools), chunk_size=3)
+    )
+
+    assert content == "Checking.\n"
+    functions = [delta.function for delta in tool_deltas if delta.function]
+    assert [function.name for function in functions if function.name] == ["get_weather"]

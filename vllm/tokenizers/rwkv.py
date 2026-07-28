@@ -308,9 +308,10 @@ class RWKVTokenizer(TokenizerLike):
                 list(conversation),
                 tools,
                 add_generation_prompt=bool(kwargs.get("add_generation_prompt", False)),
-                rwkv_generation_prompt=kwargs.get(
-                    "rwkv_generation_prompt",
-                    "open_think",
+                rwkv_generation_prompt=kwargs.get("rwkv_generation_prompt"),
+                rwkv_tool_call_format=kwargs.get(
+                    "rwkv_tool_call_format",
+                    "compact_json",
                 ),
             )
         else:

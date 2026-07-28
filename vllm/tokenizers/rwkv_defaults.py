@@ -11,6 +11,12 @@ from vllm.transformers_utils.configs.rwkv7 import build_rwkv7_config_from_pth
 
 RWKV_NATIVE_CHAT_TEMPLATE = "{# RWKV native chat template #}"
 RWKV_TOOL_CALL_PARSER = "rwkv"
+RWKV_TOOL_CALL_FORMAT_COMPACT_JSON = "compact_json"
+RWKV_TOOL_CALL_FORMAT_LEGACY_MARKDOWN = "legacy_markdown"
+RWKV_TOOL_CALL_FORMATS = (
+    RWKV_TOOL_CALL_FORMAT_COMPACT_JSON,
+    RWKV_TOOL_CALL_FORMAT_LEGACY_MARKDOWN,
+)
 RWKV_DEFAULT_STOPS = ("\nUser:", "\n### User")
 RWKV_DEFAULT_STOP = RWKV_DEFAULT_STOPS[0]
 RWKV_DEFAULT_STOP_TOKEN_IDS = (0,)
@@ -68,9 +74,17 @@ def render_rwkv_chat_template(
     tools: list[dict[str, Any]] | None = None,
     *,
     add_generation_prompt: bool,
-    rwkv_generation_prompt: str = RWKV_GENERATION_PROMPT_OPEN_THINK,
+    rwkv_generation_prompt: str | None = None,
+    rwkv_tool_call_format: str = RWKV_TOOL_CALL_FORMAT_COMPACT_JSON,
 ) -> str:
+    if rwkv_generation_prompt is None:
+        rwkv_generation_prompt = (
+            RWKV_GENERATION_PROMPT_FAKE_THINK
+            if tools
+            else RWKV_GENERATION_PROMPT_OPEN_THINK
+        )
     _check_generation_prompt(rwkv_generation_prompt)
+    _check_tool_call_format(rwkv_tool_call_format)
     has_tool_history = any(
         _field(message, "role", "") == "tool"
         or bool(_field(message, "tool_calls", None))
@@ -82,12 +96,79 @@ def render_rwkv_chat_template(
             tools or [],
             add_generation_prompt=add_generation_prompt,
             rwkv_generation_prompt=rwkv_generation_prompt,
+            rwkv_tool_call_format=rwkv_tool_call_format,
         )
     return _render_basic_chat(
         messages,
         add_generation_prompt=add_generation_prompt,
         rwkv_generation_prompt=rwkv_generation_prompt,
     )
+
+
+def trim_rwkv_chat_messages(
+    messages: list[Any],
+    tools: list[dict[str, Any]] | None,
+    tokenizer: Any,
+    context_window: int | None,
+    *,
+    chat_template_kwargs: dict[str, Any] | None = None,
+) -> list[Any]:
+    """Drop the oldest complete RWKV chat turns until they fit the window.
+
+    Leading system messages are retained. A turn starts with a user message
+    and includes all following assistant/tool messages until the next user
+    message, which keeps tool calls and their results together. The final
+    token-level policy remains authoritative for prompts whose system message
+    alone is larger than the window.
+    """
+    if context_window is None or context_window < 1:
+        return messages
+
+    leading_system: list[Any] = []
+    history: list[Any] = []
+    in_history = False
+    for message in messages:
+        if not in_history and _field(message, "role", "") == "system":
+            leading_system.append(message)
+        else:
+            in_history = True
+            history.append(message)
+
+    units: list[list[Any]] = []
+    current_unit: list[Any] = []
+    for message in history:
+        if _field(message, "role", "") == "user" and current_unit:
+            units.append(current_unit)
+            current_unit = []
+        current_unit.append(message)
+    if current_unit:
+        units.append(current_unit)
+
+    def fits(candidate: list[Any]) -> bool:
+        kwargs = dict(chat_template_kwargs or {})
+        kwargs.pop("tokenize", None)
+        kwargs.pop("return_dict", None)
+        kwargs.pop("tools", None)
+        kwargs["tokenize"] = True
+        kwargs.setdefault("add_generation_prompt", True)
+        try:
+            tokenized = tokenizer.apply_chat_template(
+                candidate,
+                tools=tools,
+                **kwargs,
+            )
+        except (TypeError, ValueError):
+            return True
+        if isinstance(tokenized, dict):
+            tokenized = tokenized["input_ids"]
+        return len(tokenized) <= context_window
+
+    candidate = leading_system + [message for unit in units for message in unit]
+    while len(units) > 1 and not fits(candidate):
+        units.pop(0)
+        candidate = leading_system + [message for unit in units for message in unit]
+
+    return candidate
 
 
 def is_rwkv_model_config(model_config: Any) -> bool:
@@ -169,7 +250,16 @@ def _render_tool_chat(
     *,
     add_generation_prompt: bool,
     rwkv_generation_prompt: str,
+    rwkv_tool_call_format: str,
 ) -> str:
+    if rwkv_tool_call_format == RWKV_TOOL_CALL_FORMAT_COMPACT_JSON:
+        return _render_compact_tool_chat(
+            messages,
+            tools,
+            add_generation_prompt=add_generation_prompt,
+            rwkv_generation_prompt=rwkv_generation_prompt,
+        )
+
     lines: list[str] = []
     pending_system: list[str] = []
 
@@ -222,6 +312,69 @@ def _render_tool_chat(
     return "\n".join(lines)
 
 
+def _render_compact_tool_chat(
+    messages: list[Any],
+    tools: list[dict[str, Any]],
+    *,
+    add_generation_prompt: bool,
+    rwkv_generation_prompt: str,
+) -> str:
+    lines: list[str] = []
+    pending_system: list[str] = []
+
+    for message in messages:
+        role = _field(message, "role", "")
+        content = normalize_rwkv_message_content(_field(message, "content", ""))
+        if role == "user":
+            content = simplify_rwkv_math_prompt(content)
+
+        if role == "system":
+            pending_system.append(content)
+            continue
+
+        if pending_system or (tools and not lines):
+            lines.append("### System")
+            lines.extend(item for item in pending_system if item)
+            lines.extend(_render_compact_tool_definitions(tools))
+            pending_system.clear()
+
+        if role == "user":
+            lines.extend(["### User", content])
+        elif role == "assistant":
+            lines.append("### Assistant")
+            if content:
+                lines.append(content)
+            calls = []
+            for tool_call in _field(message, "tool_calls", []) or []:
+                function = _tool_function(tool_call)
+                calls.append(
+                    {
+                        "name": _field(function, "name", ""),
+                        "arguments": _json_value(
+                            _field(function, "arguments", {}) or {}
+                        ),
+                    }
+                )
+            if calls:
+                payload: Any = calls[0] if len(calls) == 1 else {"tool_calls": calls}
+                lines.append(_compact_json_text(payload))
+        elif role == "tool":
+            lines.extend(["### Tool Output", _compact_json_text(_json_value(content))])
+        else:
+            raise ValueError(f"Unsupported RWKV chat message role: {role!r}")
+
+    if pending_system:
+        lines.append("### System")
+        lines.extend(item for item in pending_system if item)
+        lines.extend(_render_compact_tool_definitions(tools))
+
+    if add_generation_prompt:
+        lines.append("### Assistant")
+        lines.append(_generation_prompt_text(rwkv_generation_prompt))
+
+    return "\n".join(lines)
+
+
 def _check_generation_prompt(mode: str) -> None:
     if mode not in RWKV_GENERATION_PROMPT_MODES:
         raise ValueError(
@@ -234,7 +387,7 @@ def _generation_prompt_text(mode: str) -> str:
     if mode == RWKV_GENERATION_PROMPT_OPEN_THINK:
         return "<think"
     if mode == RWKV_GENERATION_PROMPT_FAKE_THINK:
-        return "<think></think"
+        return "<think></think>"
     _check_generation_prompt(mode)
     raise AssertionError("unreachable")
 
@@ -269,8 +422,39 @@ def _render_tool_definitions(tools: list[dict[str, Any]]) -> list[str]:
     return rendered
 
 
+def _render_compact_tool_definitions(tools: list[dict[str, Any]]) -> list[str]:
+    if not tools:
+        return []
+
+    definitions = []
+    for tool in tools:
+        function = _tool_function(tool)
+        definitions.append(
+            {
+                "name": _field(function, "name", ""),
+                "description": normalize_rwkv_message_content(
+                    _field(function, "description", "") or ""
+                ),
+                "parameters": _json_value(_field(function, "parameters", {}) or {}),
+            }
+        )
+
+    return [
+        "### Tools",
+        _compact_json_text(definitions),
+        "Output only JSON for a tool call:",
+        '{"name":"tool_name","arguments":{"key":"value"}}',
+        'For parallel calls use {"tool_calls":[...]}.',
+        "Do not include tool call IDs, Markdown fences, or tool outputs.",
+    ]
+
+
 def _json_text(value: Any) -> str:
     return json.dumps(_json_value(value), ensure_ascii=False, indent=2)
+
+
+def _compact_json_text(value: Any) -> str:
+    return json.dumps(_json_value(value), ensure_ascii=False, separators=(",", ":"))
 
 
 def _json_value(value: Any) -> Any:
@@ -296,3 +480,11 @@ def _field(value: Any, name: str, default: Any = None) -> Any:
 
 def _is_rwkv_tokenizer_mode(tokenizer_mode: Any) -> bool:
     return isinstance(tokenizer_mode, str) and tokenizer_mode.lower() == "rwkv"
+
+
+def _check_tool_call_format(tool_call_format: str) -> None:
+    if tool_call_format not in RWKV_TOOL_CALL_FORMATS:
+        raise ValueError(
+            "Unsupported RWKV tool call format: "
+            f"{tool_call_format!r}. Expected one of {RWKV_TOOL_CALL_FORMATS!r}."
+        )

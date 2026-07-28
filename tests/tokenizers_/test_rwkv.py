@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 from vllm.tokenizers.registry import TokenizerRegistry, get_tokenizer
+from vllm.tokenizers.rwkv_defaults import render_rwkv_chat_template
 
 
 def test_rwkv_tokenizer_matches_world_vocab_golden_ids():
@@ -133,7 +134,7 @@ def test_rwkv_chat_template_can_render_fake_think_generation_prompt():
         rwkv_generation_prompt="fake_think",
     )
 
-    assert rendered == "User: Hi\n\nAssistant: <think></think"
+    assert rendered == "User: Hi\n\nAssistant: <think></think>"
 
 
 def test_rwkv_chat_template_strips_dapo_math_prompt_wrapper():
@@ -158,8 +159,7 @@ def test_rwkv_chat_template_strips_dapo_math_prompt_wrapper():
     assert "Remember to put your answer" not in rendered
 
 
-def test_rwkv_chat_template_renders_tools_and_tool_outputs_from_training_template():
-    tokenizer = get_tokenizer("BlinkDL/rwkv7-g1", tokenizer_mode="rwkv")
+def test_rwkv_chat_template_renders_compact_tools_and_tool_outputs():
     tools = [
         {
             "type": "function",
@@ -177,7 +177,7 @@ def test_rwkv_chat_template_renders_tools_and_tool_outputs_from_training_templat
         }
     ]
 
-    rendered = tokenizer.apply_chat_template(
+    rendered = render_rwkv_chat_template(
         [
             {"role": "system", "content": "  Use tools carefully.\n\nExplain gaps. "},
             {"role": "user", "content": " Weather in Paris?\r\n\r\nUse Celsius. "},
@@ -201,7 +201,6 @@ def test_rwkv_chat_template_renders_tools_and_tool_outputs_from_training_templat
             },
         ],
         tools=tools,
-        tokenize=False,
         add_generation_prompt=True,
     )
 
@@ -209,48 +208,21 @@ def test_rwkv_chat_template_renders_tools_and_tool_outputs_from_training_templat
         "### System\n"
         "Use tools carefully.\n"
         "Explain gaps.\n"
-        "### `get_weather`\n"
-        "**Description:** Get the weather for a city.\n"
-        "**Parameters:**\n"
-        "```json\n"
-        "{\n"
-        '  "type": "object",\n'
-        '  "properties": {\n'
-        '    "city": {\n'
-        '      "type": "string"\n'
-        "    }\n"
-        "  },\n"
-        '  "required": [\n'
-        '    "city"\n'
-        "  ]\n"
-        "}\n"
-        "```\n"
-        "To call one of these tools, write exactly this format:\n"
-        "**Tool Call:**\n"
-        "```json\n"
-        '{"name": "tool_name", "arguments": {"key": "value"}}\n'
-        "```\n"
-        "Do not invent tool call IDs or write tool outputs yourself.\n"
+        "### Tools\n"
+        '[{"name":"get_weather","description":"Get the weather for a city.",'
+        '"parameters":{"type":"object","properties":{"city":{"type":"string"}},'
+        '"required":["city"]}}]\n'
+        "Output only JSON for a tool call:\n"
+        '{"name":"tool_name","arguments":{"key":"value"}}\n'
+        'For parallel calls use {"tool_calls":[...]}.\n'
+        "Do not include tool call IDs, Markdown fences, or tool outputs.\n"
         "### User\n"
         "Weather in Paris?\n"
         "Use Celsius.\n"
         "### Assistant\n"
-        "**Tool Call:**\n"
-        "```json\n"
-        "{\n"
-        '  "name": "get_weather",\n'
-        '  "arguments": {\n'
-        '    "city": "Paris"\n'
-        "  }\n"
-        "}\n"
-        "```\n"
+        '{"name":"get_weather","arguments":{"city":"Paris"}}\n'
         "### Tool Output\n"
-        "```json\n"
-        "{\n"
-        '  "temperature": 21,\n'
-        '  "unit": "celsius"\n'
-        "}\n"
-        "```\n"
+        '{"temperature":21,"unit":"celsius"}\n'
         "### Assistant\n"
-        "<think"
+        "<think></think>"
     )

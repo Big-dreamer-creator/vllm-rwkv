@@ -1,0 +1,1150 @@
+{
+  "label": "none",
+  "model": "rwkv7-g1h-1.5b-20260710-ctx10240-none",
+  "base_url": "http://127.0.0.1:19348",
+  "seed": 20260728,
+  "temperature": 0.0,
+  "top_p": 1.0,
+  "case_count": 67,
+  "results": [
+    {
+      "id": "mmlu_sr_0",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We are given: \"Suppose 'Dragon' means 'The highest power of the variable in a polynomial.'Suppose 'Cat' means 'An extension of a field F is a larger field K that contains F as a subfield.'Find the Dragon for the given Cat Q(sqrt(2), sqrt(3),",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 122,
+        "total_tokens": 186,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.778
+    },
+    {
+      "id": "mmlu_sr_1",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">First, I need to understand the question. It's about a multiple-choice question with four choices, each having two parts: one for the first word and one for the second word. The question is about the meaning of 'Zelly' and 'Fish' in the context of traditional Zelly rights.",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 280,
+        "total_tokens": 344,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.281
+    },
+    {
+      "id": "mmlu_sr_2",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about the relationship between King and Book. The question: \"Suppose 'King' means 'Structural, physiological, or behavioral traits that enhance an organism's fitness in a particular environment.' Suppose 'Book' means 'The transfer of pollen from the anther to the stigma",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 157,
+        "total_tokens": 221,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.573
+    },
+    {
+      "id": "mmlu_sr_3",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": true,
+      "prediction": "B",
+      "content": ">We need to answer a multiple-choice question about the meaning of \"Winky\" and its relation to blood Winky concentration in soccer games. The question asks: \"In games like soccer the blood Winky concentration: ... Choices: A. rarely increases above 3 mM. B. is usually lower at the",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 149,
+        "total_tokens": 213,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.317
+    },
+    {
+      "id": "mmlu_sr_4",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We are given a puzzle with three statements:\n1. Fish means \"a type of nuclear radiation consisting of two protons and two neutrons\"\n2. Luck means \"A substance that cannot be broken down into simpler substances by chemical means.\"\n3. Jump means \"a measure of the amount of matter in",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 138,
+        "total_tokens": 202,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.293
+    },
+    {
+      "id": "mmlu_sr_5",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to parse the question: \"Suppose 'Book' means 'A combination of numbers, symbols, and operators to represent a mathematical phrase or sentence.' Suppose 'Love' means 'A symbol used to represent an unknown quantity in mathematical equations or expressions.' What is the Love of the Book 2,816 Love",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 126,
+        "total_tokens": 190,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.29
+    },
+    {
+      "id": "mmlu_sr_6",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We are given a multiple-choice question with four choices: A, B, C, D. The question is: \"Suppose 'Point' means 'The use of physical force with the intention of causing a child to experience bodily pain or discomfort' Suppose 'Cat' means 'Young human beings below the age of",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 158,
+        "total_tokens": 222,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.291
+    },
+    {
+      "id": "mmlu_sr_7",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We are given a set of definitions:\n- Balance: Negatively charged subatomic particles that orbit the nucleus of an atom.\n- Adam: Neutral subatomic particles found in the nucleus of an atom.\n- Ball: A subatomic particle with a positive electric charge found in the nucleus of an atom",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 442,
+        "total_tokens": 506,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.291
+    },
+    {
+      "id": "mmlu_sr_8",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": true,
+      "prediction": "D",
+      "content": ">We need to answer a multiple-choice question about the Ball. The question: \"Suppose 'Ball' means 'An international organization founded in 1945 to promote peace, security, and cooperation among countries.' Which of the following statements best describes the Ball?\" Choices: A, B, C, D.\n",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 199,
+        "total_tokens": 263,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.289
+    },
+    {
+      "id": "mmlu_sr_9",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about the meaning of \"Zelly\" and \"Fish\" based on the given definition. The question: \"Suppose 'Zelly' means 'a negative balance of trade where a country's imports exceed its exports' In 2004 the United States had a Zel",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 179,
+        "total_tokens": 243,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.285
+    },
+    {
+      "id": "mmlu_sr_10",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">We are given a puzzle with three symbols: Noise, Cat, and Vex. The statements are:\n- Noise means \"A four-sided polygon with opposite sides that are equal in length and four right angles.\"\n- Cat means \"The measurement of the space inside a two-dimensional figure, such as",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 176,
+        "total_tokens": 240,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.285
+    },
+    {
+      "id": "mmlu_sr_11",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We are given a scenario involving a fish with a movable piston containing a Bard at P = 1 × 10^5 Pa, V = 20 cm^3, and T = 273 K. The piston is moved downward slowly, allowing Winky to escape the Bard and the Zelly to remain constant. The final",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 301,
+        "total_tokens": 365,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.284
+    },
+    {
+      "id": "mmlu_sr_12",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": true,
+      "prediction": "B",
+      "content": ">We need to answer a multiple-choice question. The question: \"Suppose 'Queen' means 'a mental image or representation of a typical example of a concept' An American teenager's Queen of a chair is most likely to include\nChoices:\nA. a desk and/or table.\nB.",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 142,
+        "total_tokens": 206,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.289
+    },
+    {
+      "id": "mmlu_sr_13",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": false,
+      "prediction": "D",
+      "content": ">\nOkay, let's try to figure out this question. So, the question is about interpreting some statements related to the Treaty of Ball and the context of the 1914-1918 global conflict. The options are A to D, and I need to pick the most accurate one.\nFirst, let me recap",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 513,
+        "total_tokens": 577,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.296
+    },
+    {
+      "id": "mmlu_sr_14",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about a cryptic crossword clue: \"Suppose 'Queen' means 'remain alive' All other things being equal, which of the following persons is likely to Queen the longest?\" Choices: A. A black man, B. A white man, C. A",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 107,
+        "total_tokens": 171,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.288
+    },
+    {
+      "id": "mmlu_sr_15",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to parse the question: \"Suppose 'Book' means 'to demand by or as by virtue of a right; demand as a right or as due' Robert makes the following statement while negotiating the sale of his car, 'This is the sharpest car on the market.' His statement may support a Book",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 223,
+        "total_tokens": 287,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.293
+    },
+    {
+      "id": "mmlu_sr_16",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about the meaning of the word \"King\" in a given context. The question: \"Suppose 'King' means 'a ladder of authority where those in charge of an organization or company direct and control employees below them.'  From what does a King extend?\" Choices",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 229,
+        "total_tokens": 293,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.288
+    },
+    {
+      "id": "mmlu_sr_17",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about Ms. Espinosa's activity with 3-year-old students. The question: \"Suppose 'Zelly' means 'fundamental abilities related to reading and writing development, crucial for young children to acquire language and communication proficiency' After a visit to",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 245,
+        "total_tokens": 309,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.297
+    },
+    {
+      "id": "mmlu_sr_18",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "D",
+      "content": ">\nOkay, let's try to figure out the answer to this question. So, the user is asking which letter corresponds to the meaning of 'Vex' based on the passage provided. The options are A, B, C, D.\nFirst, I need to go through each option and see which one",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 565,
+        "total_tokens": 629,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.292
+    },
+    {
+      "id": "mmlu_sr_19",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about de Marneffe's argument. The question: \"Suppose 'Jump' means 'a substance that has a physiological effect when ingested or otherwise introduced into the body' Which of the following is evidence that de Marneffe cites in support of the claim that increased",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 200,
+        "total_tokens": 264,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.295
+    },
+    {
+      "id": "mmlu_sr_20",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">The user is asking me to analyze a multiple-choice question based on two definitions of moral terms. The question is about determining which scenario involves a morally wrong action according to the definitions provided.\nLet me break down the definitions:\n- \"Fish\" means \"the common, widely accepted moral principles and rules that",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 251,
+        "total_tokens": 315,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.33
+    },
+    {
+      "id": "mmlu_sr_21",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">First, I need to understand the question. It's about a moral judgment based on a definition of 'Jump' from 2020 US. The definition is: 'Jump' means 'The moral or ethical qualities that define and distinguish an individual's behavior, values, and integrity.' So, 'Jump' is used",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 220,
+        "total_tokens": 284,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.42
+    },
+    {
+      "id": "mmlu_sr_22",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about limitations of Jack. The question: \"Suppose 'Jack' means 'Reports showing supply, utilization, and availability of food.' What are the limitations of Jack? (select all that apply)? Choices: A. No account is taken of waste or losses of food",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 155,
+        "total_tokens": 219,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.344
+    },
+    {
+      "id": "mmlu_sr_23",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "",
+      "content": ">\nOkay, let's try to figure out this question. So, the task is to determine which answer choice correctly completes the statements about the terms 'Jump', 'Ball', and 'Duck' based on the given definitions.\nFirst, I need to parse each definition carefully. Let's start with 'Jump",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 303,
+        "total_tokens": 367,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.314
+    },
+    {
+      "id": "mmlu_sr_24",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about auditors' responsibilities and the meaning of terms. The question: \"Suppose 'Noise' means 'a person authorized to review and verify the accuracy of financial records and ensure that companies comply with tax laws.' Suppose 'Jump' means 'an objective examination and evaluation of",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 264,
+        "total_tokens": 328,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.309
+    },
+    {
+      "id": "mmlu_sr_25",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">\nOkay, let's try to figure out this question. So, the scenario is about a woman who was rejected for a special drug agent position in the Fish division of the Ball. The Fish division is a special undercover unit, and the Ball is a politically organized community living under a single government. The woman",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 853,
+        "total_tokens": 917,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.323
+    },
+    {
+      "id": "mmlu_sr_26",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "D",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question: \"Suppose 'Fish' means 'physical evidence presented in court, such as documents, objects, or recordings' Which of the following is not a correct form of Fish?\" Choices: A. Suppose 'Duck' means 'Tools or instruments used for a specific",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 172,
+        "total_tokens": 236,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.297
+    },
+    {
+      "id": "mmlu_sr_27",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "A",
+      "content": ">\nOkay, let's try to figure out this contract law question. So, the scenario is about a company that built mobile homes and a propane tank company. The Queen of the mobile homes was visited by a representative from the propane tank company. The representative told her that propane tanks could be supplied at",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 849,
+        "total_tokens": 913,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.304
+    },
+    {
+      "id": "mmlu_sr_28",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "A",
+      "correct": true,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about epidemiology. The scenario: 8-year-old boy brought by mother because of 3-day history of Jump, sore throat, itchy eyes. He just returned from a weeklong summer camp that included hiking trips and swimming lessons in the camp-owned swimming",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 380,
+        "total_tokens": 444,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.321
+    },
+    {
+      "id": "mmlu_sr_29",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question based on the given definitions. The question: \"Suppose 'Winkle' means 'techniques or strategies used to manage and regulate one's behavior or impulses' Suppose 'Ball' means 'determine the behavior or supervise the running of.' Suppose 'Noise' means",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 194,
+        "total_tokens": 258,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.293
+    },
+    {
+      "id": "mmlu_sr_30",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "C",
+      "correct": false,
+      "prediction": "D",
+      "content": ">\nOkay, let's try to figure out this question. So, the question is about the potential problem for policy in the Adam of academe-policy interaction. The options are A to D, each with different definitions of terms like Adam, King, Dummy, Queen, and Jack.\nFirst, I",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 438,
+        "total_tokens": 502,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.295
+    },
+    {
+      "id": "mmlu_sr_31",
+      "group": "real_mmlu_sr",
+      "kind": "mcq",
+      "expected": "B",
+      "correct": false,
+      "prediction": "A",
+      "content": ">We need to answer a multiple-choice question about the Winkle theory. The question: \"Suppose 'Winkle' means 'management theory emphasizing social interactions and employee satisfaction' The Winkle emphasized the importance of:\nChoices:\nA. Suppose 'King' means 'a person employed for wages or salary",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 172,
+        "total_tokens": 236,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.291
+    },
+    {
+      "id": "gsm8k_0",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "18",
+      "correct": false,
+      "prediction": "2",
+      "content": ">We are given: \"Janet’s ducks lay 16 eggs per day. She eats three for breakfast every morning and bakes muffins for her friends every day with four. She sells the remainder at the farmers' market daily for $2 per fresh duck egg. How much in dollars does she make every day",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 92,
+        "total_tokens": 156,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.7
+    },
+    {
+      "id": "gsm8k_1",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "200",
+      "correct": false,
+      "prediction": "400",
+      "content": ">\nOkay, let's see. So the problem is about Polly throwing a gold javelin at a dragon named Perg. The dragon is on mount Farbo, and it breathes fire. The javelin can go 400 feet, which is within the dragon's reach. But when Polly holds a",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 156,
+        "total_tokens": 220,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.832
+    },
+    {
+      "id": "gsm8k_2",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "623",
+      "correct": false,
+      "prediction": "125",
+      "content": ">\nOkay, let's see. Grace weighs 125 pounds. Alex weighs 2 pounds less than 4 times what Grace weighs. I need to find their combined weights. Hmm, let's break this down step by step.\nFirst, Grace's weight is straightforward: 125 pounds. That's given. Now,",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 55,
+        "total_tokens": 119,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.305
+    },
+    {
+      "id": "gsm8k_3",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "50",
+      "correct": false,
+      "prediction": "7",
+      "content": ">\nOkay, let's see. Rosie can run 10 miles per hour for 3 hours. Then after that, she runs 5 miles per hour. The question is asking how many miles she can run in 7 hours. Hmm, so I need to figure out the total distance she covers in 7 hours, considering both",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 61,
+        "total_tokens": 125,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.288
+    },
+    {
+      "id": "gsm8k_4",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "15",
+      "correct": false,
+      "prediction": "90",
+      "content": ">\nOkay, let's see. Jackie is deciding between doing her taxes herself or hiring an accountant. The problem says that if she does it herself, she can do 3 fewer hours of freelance work, which means she'll lose $35 per hour. The accountant charges $90. The question is asking how",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 97,
+        "total_tokens": 161,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.319
+    },
+    {
+      "id": "gsm8k_5",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "860",
+      "correct": false,
+      "prediction": "5",
+      "content": ">\nOkay, let's see. I need to figure out how many kilometers Micheal rode in total over four weeks and then three weeks. Hmm, let's break it down step by step.\nFirst, let's tackle the first part: he rode 5 times a week for four weeks. Each time he rode",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 99,
+        "total_tokens": 163,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.299
+    },
+    {
+      "id": "gsm8k_6",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "32",
+      "correct": false,
+      "prediction": "22",
+      "content": ">We are given: \"Isabelle bought party supplies for her little sister’s birthday party. She spent $12 on ingredients for the cake, $43 on birthday presents, $15 on decorations, $4 on invitations, and $22 on goodie bags for the party guests. She split the cost evenly",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 101,
+        "total_tokens": 165,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.298
+    },
+    {
+      "id": "gsm8k_7",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "3",
+      "correct": false,
+      "prediction": "2000",
+      "content": ">\nOkay, let's see. The problem is about a landscaping company delivering flagstones. Each flagstone weighs 75 pounds, and they need to transport 80 flagstones in one trip. The trucks can carry a total weight of 2000 pounds. The question is asking how many trucks are needed.\n",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 81,
+        "total_tokens": 145,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.291
+    },
+    {
+      "id": "gsm8k_8",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "14",
+      "correct": false,
+      "prediction": "3",
+      "content": ">\nOkay, let's see. Erin starts with 7 lollipops. Then her mother gives her 10 more. So first, I need to add those two amounts together. 7 plus 10 is 17. So Erin has 17 lollipops now.\nNext, she gives 3 of her lollipops to Ell",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 69,
+        "total_tokens": 133,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.279
+    },
+    {
+      "id": "gsm8k_9",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "320",
+      "correct": false,
+      "prediction": "400",
+      "content": ">\nOkay, let's see. Ethan made his own hand-painted wallpaper, and the problem says that a DIY saves 20% after considering the materials cost. The market price is $400. I need to find the total cost.\nFirst, I need to figure out how much Ethan saved by",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 75,
+        "total_tokens": 139,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.283
+    },
+    {
+      "id": "gsm8k_10",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "5",
+      "correct": false,
+      "prediction": "14",
+      "content": ">\nOkay, let's see. Shannon wants to make enough cookies to last her 30 days. Each night she eats 2 cookies. So first, I need to figure out how many cookies she eats in a week. Since there are 7 days in a week, that's 2 cookies/day * 7 days = 14",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 95,
+        "total_tokens": 159,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.279
+    },
+    {
+      "id": "gsm8k_11",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "6400",
+      "correct": false,
+      "prediction": "3",
+      "content": ">\nOkay, let's see. Jenna starts with 8 sapphires. She trades 3 sapphires for two rubies. Then we need to find out how much all her jewels are worth. Hmm, so first, I need to figure out how many sapphires she has left after the trade",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 78,
+        "total_tokens": 142,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.293
+    },
+    {
+      "id": "gsm8k_12",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "21",
+      "correct": false,
+      "prediction": "3",
+      "content": ">We are given: \"9 out of 10 cheerleaders are 64\" tall. The 10th cheerleader is 60\" tall. If they build a human pyramid, where 4 girls are on the bottom, 3 stand on top of the 4, 2 stand on top of the 3 and the shortest girl is at",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 102,
+        "total_tokens": 166,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.281
+    },
+    {
+      "id": "gsm8k_13",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "16",
+      "correct": false,
+      "prediction": "3",
+      "content": ">\nOkay, let's see. The problem says Nick had twice as many candies as George. Then George ate 5 candies, and now George has 3 left. We need to find out how many candies Nick has.\nFirst, let's break down the information. Let's denote the number of cand",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 62,
+        "total_tokens": 126,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.282
+    },
+    {
+      "id": "gsm8k_14",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "40",
+      "correct": false,
+      "prediction": "",
+      "content": ">\nOkay, let's see. Mack wants to count birds over seven days, and we need to find the average number he saw each day. Hmm, averages can sometimes be tricky, but I think it's just the total divided by the number of days. Let me break it down step by step.\nFirst",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 111,
+        "total_tokens": 175,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.299
+    },
+    {
+      "id": "gsm8k_15",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "36",
+      "correct": false,
+      "prediction": "4",
+      "content": ">\nOkay, let's see. The problem is about figuring out how many students were in the school auditorium. Let me break it down step by step.\nFirst, the auditorium has 4 rows of seats, and each row has 18 seats. So, the total number of seats would be 4 rows multiplied",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 91,
+        "total_tokens": 155,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.296
+    },
+    {
+      "id": "gsm8k_16",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "3",
+      "correct": true,
+      "prediction": "3",
+      "content": ">\nOkay, let's see. The problem is asking how much more it costs to make a mixture of 1/2 pound almonds and 1/3 pound walnuts compared to another mixture of 1/5 pound almonds and 1/3 pound walnuts. Hmm, so I need to calculate the cost for",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 88,
+        "total_tokens": 152,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.31
+    },
+    {
+      "id": "gsm8k_17",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "135",
+      "correct": false,
+      "prediction": "30",
+      "content": ">\nOkay, let's see. Hannah's city is having a big fireworks display. They're going to set off 15 boxes of 20 fireworks each. So first, I need to figure out how many fireworks that is in total. Let me calculate that. 15 boxes times 20 fireworks each. 15 times 20 is 30",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 101,
+        "total_tokens": 165,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.286
+    },
+    {
+      "id": "gsm8k_18",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "28",
+      "correct": false,
+      "prediction": "20",
+      "content": ">We need to parse the problem carefully.\n\"Jeremy saw 12 birds in their backyard and threw a stone at them, scaring away 1/3 of that number. A few minutes later, 20 more birds joined the fearless birds. How many birds are now in the backyard?\"\nInterpretation:",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 76,
+        "total_tokens": 140,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.28
+    },
+    {
+      "id": "gsm8k_19",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "4",
+      "correct": false,
+      "prediction": "17",
+      "content": ">\nOkay, let's see. Bob had 7 fish in his pond. He had 3 orange and 4 white. Then he went to the pet store and took out 17 fish. After that, he added them to his pond, and now he has twice as many orange fish as white fish. I need to find",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 129,
+        "total_tokens": 193,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.282
+    },
+    {
+      "id": "gsm8k_20",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "52",
+      "correct": false,
+      "prediction": "6",
+      "content": ">\nOkay, let's see. Kimberly bought 8 packages of cat food and 6 packages of dog food. Each package of cat food has 11 tins, and each package of dog food has 6 tins. The question is asking how many more tins of cat food than dog food Kimberly bought.\n",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 81,
+        "total_tokens": 145,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.283
+    },
+    {
+      "id": "gsm8k_21",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "23",
+      "correct": false,
+      "prediction": "75",
+      "content": ">We are given: \"A bumper car rink has 12 red cars. They have 2 fewer green cars than they have red cars. They have 3 times the number of blue cars as they have green cars. The rink also has yellow cars. If the rink has 75 cars in total how many yellow",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 93,
+        "total_tokens": 157,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.296
+    },
+    {
+      "id": "gsm8k_22",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "10",
+      "correct": false,
+      "prediction": "3",
+      "content": ">\nOkay, let's see. Tim has a box with 7 blue shoe boxes and 9 red shoe boxes. He uses 3 blue ones and 1/3 of the red ones for fishing. I need to find out how many red and blue shoe boxes are left.\nFirst, let's figure out how many red",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 78,
+        "total_tokens": 142,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.301
+    },
+    {
+      "id": "gsm8k_23",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "15",
+      "correct": false,
+      "prediction": "10",
+      "content": ">Okay, let's see. Cayley sells newspapers and gets a commission on each copy. The problem says he gets a 10% commission on each New York Times copy and an 8% commission on each Wall Street Journal copy. We need to calculate his total commission from selling 6 copies of the New York Times and 10",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 106,
+        "total_tokens": 170,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.305
+    },
+    {
+      "id": "gsm8k_24",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "45",
+      "correct": false,
+      "prediction": "6",
+      "content": ">\nOkay, let's see. Emily can peel 6 shrimp in a minute. So, if she peels 6 per minute, how long does it take to peel 90 shrimp? Hmm, maybe I should calculate the time it takes to peel 90 shrimp first.\nSo, if she peels 6 shrimp per minute",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 58,
+        "total_tokens": 122,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.369
+    },
+    {
+      "id": "gsm8k_25",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "24",
+      "correct": false,
+      "prediction": "",
+      "content": ">\nOkay, let's see. Marcus has a homework problem where he needs to figure out the probability that he actually has to turn in his homework tomorrow. The problem gives three different scenarios, each with their own probabilities. I need to calculate the overall probability by considering all these possibilities.\nFirst, let me break",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 135,
+        "total_tokens": 199,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.345
+    },
+    {
+      "id": "gsm8k_26",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "251",
+      "correct": false,
+      "prediction": "4",
+      "content": ">\nOkay, let's see. Kayla is having a birthday party at a movie theater. The fee to rent the theater is $125 for a party of 20, plus $6 for each additional guest. She invited 25 classmates, 7 girls in her dance class, and 13 family members. But only 4",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 103,
+        "total_tokens": 167,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.299
+    },
+    {
+      "id": "gsm8k_27",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "5",
+      "correct": false,
+      "prediction": "12",
+      "content": ">We need to parse the problem: \"Pierre, Paul, and Jacques bought 12 kg of apples. Peter wants a quarter of that and Paul wants 1/3 of that. How many kilograms will James have left?\"\nInterpretation: There are 12 kg of apples total. Peter wants a quarter of that",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 65,
+        "total_tokens": 129,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.304
+    },
+    {
+      "id": "gsm8k_28",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "30",
+      "correct": false,
+      "prediction": "10",
+      "content": ">We need to compute total carrots per week. Mason eats 4 carrots each weekday (Monday to Friday). That's 5 weekdays. So 4*5 = 20 carrots. On Saturday and Sunday, he eats 5 carrots each. That's 2 days, so 2*5 = 10 carrots. Total = 20 + 10",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 61,
+        "total_tokens": 125,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.314
+    },
+    {
+      "id": "gsm8k_29",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "320",
+      "correct": false,
+      "prediction": "50",
+      "content": ">\nOkay, let's try to figure out this problem step by step. So, Mr. Maxim works at The Best Cookeries Around restaurant. The question is about the total number of people who entered the restaurant on that day. Let me break down the information given.\nFirst, in the morning, 50 people",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 140,
+        "total_tokens": 204,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.29
+    },
+    {
+      "id": "gsm8k_30",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "84",
+      "correct": false,
+      "prediction": "4",
+      "content": ">We need to parse the problem carefully.\nProblem: Madeline ate 6 grapes. Her brother wanted to make grape juice and used up 5 times as many grapes then Madeline to make a full glass. Their mother then used the remaining grapes to make 4 pies. How many grapes were there at the beginning if the",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 90,
+        "total_tokens": 154,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.289
+    },
+    {
+      "id": "gsm8k_31",
+      "group": "real_gsm8k",
+      "kind": "number",
+      "expected": "48",
+      "correct": false,
+      "prediction": "40",
+      "content": ">Okay, let's see. The problem says that Mia and Emma are currently 16 years apart in age. Mia is younger than Emma, and Mia is 40 years old. We need to find the average of their ages. Hmm, let's break this down step by step.\nFirst, let's understand the given",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 62,
+        "total_tokens": 126,
+        "completion_tokens": 64,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.289
+    },
+    {
+      "id": "long_recent_needle",
+      "group": "window_retrieval",
+      "kind": "needle",
+      "expected": "RECENT-BLUE-731",
+      "correct": false,
+      "prediction": "",
+      "content": ">Okay, let's see. The user provided a bunch of irrelevant text, and the task is to find the exact secret code. The code is supposed to",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 9041,
+        "total_tokens": 9073,
+        "completion_tokens": 32,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.407
+    },
+    {
+      "id": "long_early_needle",
+      "group": "window_loss_tradeoff",
+      "kind": "needle",
+      "expected": "EARLY-RED-482",
+      "correct": true,
+      "prediction": "EARLY-RED-482",
+      "content": ">\nOkay, let's see. The user is asking for the exact secret code, which is EARLY-RED-482. The relevant archive",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 9042,
+        "total_tokens": 9074,
+        "completion_tokens": 32,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.406
+    },
+    {
+      "id": "long_within_window_needle",
+      "group": "window_retrieval",
+      "kind": "needle",
+      "expected": "WITHIN-GREEN-916",
+      "correct": false,
+      "prediction": "",
+      "content": ">Okay, let's see. The user provided a bunch of irrelevant text, and the task is to find the exact secret code. The code is supposed to",
+      "finish_reason": "length",
+      "usage": {
+        "prompt_tokens": 6041,
+        "total_tokens": 6073,
+        "completion_tokens": 32,
+        "prompt_tokens_details": null
+      },
+      "latency_s": 0.342
+    }
+  ]
+}

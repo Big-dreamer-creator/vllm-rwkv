@@ -14,6 +14,10 @@ from vllm.inputs import (
     SingletonInput,
     split_enc_dec_input,
 )
+from vllm.inputs.context_window import (
+    apply_context_window,
+    resolve_context_window,
+)
 from vllm.inputs.preprocess import InputPreprocessor
 from vllm.logger import init_logger
 from vllm.lora.request import LoRARequest
@@ -310,6 +314,14 @@ class InputProcessor:
         current_platform.validate_request(processed_inputs, params)
 
         encoder_inputs, decoder_inputs = split_enc_dec_input(processed_inputs)
+        context_window_strategy = getattr(
+            self.model_config, "context_window_strategy", "none"
+        )
+        decoder_inputs = apply_context_window(
+            decoder_inputs,
+            resolve_context_window(self.model_config, context_window_strategy),
+            context_window_strategy,
+        )
         self._validate_model_inputs(encoder_inputs, decoder_inputs)
 
         # Mypy can be conservative for TypedDict unions; normalize access.

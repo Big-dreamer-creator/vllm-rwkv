@@ -18,6 +18,7 @@ from vllm.renderers.hf import (
     safe_apply_chat_template,
 )
 from vllm.tokenizers import get_tokenizer
+from vllm.tokenizers.rwkv_defaults import RWKV_NATIVE_CHAT_TEMPLATE
 
 from ..models.registry import HF_EXAMPLE_MODELS
 from ..utils import VLLM_PATH
@@ -356,6 +357,30 @@ def test_resolve_chat_template_kwargs_with_template_name():
     assert "documents" in resolved
     # unknown param should be filtered
     assert "unknown_param" not in resolved
+
+
+def test_resolve_chat_template_kwargs_preserves_rwkv_native_options():
+    class MockRWKVTokenizer:
+        def apply_chat_template(self, conversation, **kwargs):
+            return "mocked_output"
+
+    resolved = resolve_chat_template_kwargs(
+        MockRWKVTokenizer(),
+        chat_template=RWKV_NATIVE_CHAT_TEMPLATE,
+        chat_template_kwargs={
+            "add_generation_prompt": True,
+            "rwkv_generation_prompt": "fake_think",
+            "rwkv_tool_call_format": "compact_json",
+            "unknown_param": "should_be_preserved_for_rwkv",
+        },
+    )
+
+    assert resolved == {
+        "add_generation_prompt": True,
+        "rwkv_generation_prompt": "fake_think",
+        "rwkv_tool_call_format": "compact_json",
+        "unknown_param": "should_be_preserved_for_rwkv",
+    }
 
 
 # NOTE: Qwen2-Audio default chat template is specially defined inside

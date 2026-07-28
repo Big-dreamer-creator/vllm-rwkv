@@ -207,6 +207,11 @@ class ModelConfig:
     - -1 or 'auto' -> Automatically choose the maximum model length that fits in
       GPU memory. This will use the model's maximum context length if it fits,
       otherwise it will find the largest length that can be accommodated."""
+    context_window: int | None = Field(default=None, ge=1)
+    """Maximum number of prompt tokens retained by the inference-side
+    context window policy. This is independent from ``max_model_len``."""
+    context_window_strategy: Literal["none", "sliding_window"] = "sliding_window"
+    """Policy used when ``context_window`` is set."""
     spec_target_max_model_len: int | None = None
     """Specify the maximum length for spec decoding draft models."""
     quantization: QuantizationMethods | str | None = None
@@ -404,6 +409,8 @@ class ModelConfig:
             "allowed_media_domains",
             "tokenizer_revision",
             "spec_target_max_model_len",
+            "context_window",
+            "context_window_strategy",
             "enforce_eager",
             "logprobs_mode",
             "use_fp64_gumbel",

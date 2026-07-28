@@ -361,6 +361,7 @@ def _compute_kwargs(cls: ConfigType) -> dict[str, dict[str, Any]]:
                 "max_num_scheduled_tokens",
                 "kv_cache_memory_bytes",
                 "safetensors_prefetch_block_size",
+                "context_window",
             }
             if name == "max_model_len":
                 kwargs[name]["type"] = human_readable_int_or_auto
@@ -444,6 +445,10 @@ class EngineArgs:
     kv_cache_dtype: CacheDType = CacheConfig.cache_dtype
     seed: int = ModelConfig.seed
     max_model_len: int = ModelConfig.max_model_len
+    context_window: int | None = ModelConfig.context_window
+    context_window_strategy: Literal["none", "sliding_window"] = (
+        ModelConfig.context_window_strategy
+    )
     cudagraph_capture_sizes: list[int] | None = (
         CompilationConfig.cudagraph_capture_sizes
     )
@@ -828,6 +833,10 @@ class EngineArgs:
             "--tokenizer-revision", **model_kwargs["tokenizer_revision"]
         )
         model_group.add_argument("--max-model-len", **model_kwargs["max_model_len"])
+        model_group.add_argument("--context-window", **model_kwargs["context_window"])
+        model_group.add_argument(
+            "--context-window-strategy", **model_kwargs["context_window_strategy"]
+        )
         model_group.add_argument("--quantization", "-q", **model_kwargs["quantization"])
         model_group.add_argument(
             "--quantization-config", **model_kwargs["quantization_config"]
@@ -1657,6 +1666,8 @@ class EngineArgs:
             model_class_overrides=self.model_class_overrides,
             tokenizer_revision=self.tokenizer_revision,
             max_model_len=self.max_model_len,
+            context_window=self.context_window,
+            context_window_strategy=self.context_window_strategy,
             quantization=self.quantization,
             quantization_config=self.quantization_config,
             allow_deprecated_quantization=self.allow_deprecated_quantization,

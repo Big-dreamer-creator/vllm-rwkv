@@ -44,6 +44,7 @@ from vllm.multimodal.processing.processor import (
     find_mm_placeholders,
 )
 from vllm.tokenizers.hf import HfTokenizer, maybe_make_thread_pool
+from vllm.tokenizers.rwkv_defaults import RWKV_NATIVE_CHAT_TEMPLATE
 from vllm.transformers_utils.chat_templates import get_chat_template_fallback_path
 from vllm.transformers_utils.processor import cached_get_processor
 from vllm.utils.async_utils import make_async
@@ -646,6 +647,16 @@ def resolve_chat_template_kwargs(
             "Found unexpected chat template kwargs from request: "
             f"{unexpected_in_kwargs}"
         )
+
+    # RWKV's native template is implemented by the tokenizer rather than by
+    # Jinja. Its model-specific options are accepted through ``**kwargs`` and
+    # therefore are not discoverable from the signature or Jinja variables.
+    if chat_template.strip() == RWKV_NATIVE_CHAT_TEMPLATE:
+        return {
+            k: v
+            for k, v in chat_template_kwargs.items()
+            if k not in unexpected_vars
+        }
 
     fn_kw = {
         k

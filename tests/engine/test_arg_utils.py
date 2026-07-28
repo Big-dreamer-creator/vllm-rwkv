@@ -216,6 +216,25 @@ def test_jit_monitor_verbose_arg():
     assert EngineArgs(model="test", jit_monitor_verbose=True).jit_monitor_verbose
 
 
+def test_context_window_strategy_cli_args():
+    parser = EngineArgs.add_cli_args(FlexibleArgumentParser())
+    args = parser.parse_args(
+        [
+            "--model",
+            "test",
+            "--context-window",
+            "4096",
+            "--context-window-strategy",
+            "none",
+        ]
+    )
+
+    engine_args = EngineArgs.from_cli_args(args)
+
+    assert engine_args.context_window == 4096
+    assert engine_args.context_window_strategy == "none"
+
+
 @pytest.mark.parametrize("mode", ["warn", "error"])
 def test_jit_monitor_mode_arg(mode):
     parser = EngineArgs.add_cli_args(FlexibleArgumentParser())
