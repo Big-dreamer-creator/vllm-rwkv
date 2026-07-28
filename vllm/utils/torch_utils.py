@@ -6,6 +6,7 @@ import os
 import random
 import threading
 from collections.abc import Callable, Collection
+from functools import cache
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
@@ -70,6 +71,14 @@ T = TypeVar("T")
 
 
 PIN_MEMORY = is_pin_memory_available()
+
+
+@cache
+def _import_accelerator_kernels() -> None:
+    """Load platform kernels before the first UVA view is requested."""
+    from vllm.platforms import current_platform
+
+    current_platform.import_kernels()
 
 
 def is_quantized_kv_cache(kv_cache_dtype: str) -> bool:
@@ -768,6 +777,12 @@ def get_accelerator_view_from_cpu_tensor(cpu_tensor: torch.Tensor) -> torch.Tens
     Get an accelerator view of a CPU tensor using Unified Virtual Addressing (UVA).
     """
     from vllm.platforms import current_platform
+
+    if current_platform.is_cuda_alike() or current_platform.is_xpu():
+        # RequestState can allocate UVA-backed buffers before model-specific
+        # code imports custom kernels. Load the platform extension here so
+        # reduced builds register the view op before its first use.
+        _import_accelerator_kernels()
 
     if current_platform.is_xpu():
         assert cpu_tensor.is_pinned(), "CPU tensor must be pinned"

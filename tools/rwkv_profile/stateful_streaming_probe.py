@@ -47,6 +47,7 @@ async def _run_one(
         seed=42,
         max_tokens=1,
     )
+
     async def inputs():
         for start in range(0, len(token_ids), chunk_size):
             yield StreamingInput(
@@ -76,14 +77,47 @@ async def _run_one(
     }
 
 
+async def _run_reference(
+    engine: AsyncLLM,
+    token_ids: list[int],
+    request_id: str,
+) -> dict:
+    """Run the same token sequence as one untruncated request."""
+    params = SamplingParams(
+        temperature=0.0,
+        seed=42,
+        max_tokens=1,
+    )
+    output, timing = await _collect(
+        engine.generate(
+            TokensPrompt(prompt_token_ids=token_ids),
+            params,
+            request_id=request_id,
+        )
+    )
+    if output is None:
+        raise RuntimeError(f"No output received for {request_id}")
+    generated = output.outputs[0]
+    return {
+        "request_id": request_id,
+        "context_mode": "reference",
+        "total_history_tokens": len(token_ids),
+        "chunk_size": len(token_ids),
+        "output_token_ids": generated.token_ids,
+        "output_text": generated.text,
+        **timing,
+    }
+
+
 async def _main(args: argparse.Namespace) -> None:
+    context_window_strategy = "none" if args.mode == "reference" else "sliding_window"
     engine_args = AsyncEngineArgs(
         model=args.model,
         tokenizer=args.tokenizer or args.model,
         tensor_parallel_size=args.tensor_parallel_size,
         max_model_len=args.max_model_len,
         context_window=args.context_window,
-        context_window_strategy="sliding_window",
+        context_window_strategy=context_window_strategy,
         max_num_seqs=args.max_num_seqs,
         max_num_batched_tokens=args.max_num_batched_tokens,
         gpu_memory_utilization=args.gpu_memory_utilization,
@@ -94,30 +128,40 @@ async def _main(args: argparse.Namespace) -> None:
     try:
         for length in args.lengths:
             token_ids = _token_ids(length)
-            results.append(
-                await _run_one(
-                    engine,
-                    token_ids,
-                    "sliding",
-                    args.chunk_size,
-                    f"sliding-{length}",
+            if args.mode == "reference":
+                results.append(
+                    await _run_reference(
+                        engine,
+                        token_ids,
+                        f"reference-{length}",
+                    )
                 )
-            )
-            results.append(
-                await _run_one(
-                    engine,
-                    token_ids,
-                    "stateful",
-                    args.chunk_size,
-                    f"stateful-{length}",
+            else:
+                results.append(
+                    await _run_one(
+                        engine,
+                        token_ids,
+                        "sliding",
+                        args.chunk_size,
+                        f"sliding-{length}",
+                    )
                 )
-            )
+                results.append(
+                    await _run_one(
+                        engine,
+                        token_ids,
+                        "stateful",
+                        args.chunk_size,
+                        f"stateful-{length}",
+                    )
+                )
     finally:
         engine.shutdown()
 
     payload = {
         "model": args.model,
         "context_window": args.context_window,
+        "mode": args.mode,
         "lengths": args.lengths,
         "results": results,
     }
@@ -131,6 +175,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True)
     parser.add_argument("--tokenizer")
+    parser.add_argument("--mode", choices=("ab", "reference"), default="ab")
     parser.add_argument("--lengths", nargs="+", type=int, default=[8192, 12288, 20480])
     parser.add_argument("--chunk-size", type=int, default=2048)
     parser.add_argument("--tensor-parallel-size", type=int, default=1)
