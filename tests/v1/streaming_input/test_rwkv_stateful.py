@@ -143,3 +143,11 @@ def test_detached_sessions_are_reclaimed_after_ttl() -> None:
     assert state.evict_expired_sessions(now=110) == ["session-a"]
     with pytest.raises(KeyError):
         state.get_session("session-a")
+
+
+def test_session_rows_are_bounded() -> None:
+    state = _model_state(max_num_seqs=1)
+    state.create_session("session-a")
+
+    with pytest.raises(RuntimeError, match="state pool is full"):
+        state.create_session("session-b")

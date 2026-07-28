@@ -70,7 +70,9 @@ Current limitations:
   returns HTTP 410; the client must replay the full conversation with
   `rwkv_session_action="create"`.
 - Session rows are bounded by the configured state pool (`max_num_seqs`); a
-  deployment must size this for its maximum number of live sessions.
+  deployment must size this for its maximum number of live sessions. A new
+  session that cannot reserve a row receives HTTP 503 rather than terminating
+  the engine.
 - `context_mode="sliding"` remains the default and keeps the existing behavior.
 
 The reproducible probe is:

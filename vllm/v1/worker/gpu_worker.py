@@ -957,7 +957,11 @@ class Worker(WorkerBase):
             try:
                 model_state.get_session(session_id)
             except KeyError:
-                return {"session_id": session_id, "status": "new"}
+                # Reserve the state row before the request is submitted. This
+                # makes concurrent session creation capacity-safe: a later
+                # request observes the reservation instead of crashing the
+                # engine when add_request() runs out of rows.
+                return model_state.create_session(session_id)
             raise RuntimeError(f"RWKV session {session_id!r} already exists")
         if action == "ensure_continue":
             return model_state.get_session(session_id)

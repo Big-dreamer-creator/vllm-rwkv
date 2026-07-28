@@ -309,6 +309,12 @@ class OpenAIServingChat(GenerateBaseServing):
                     "rwkv_session_id",
                 )
             if request.rwkv_session_action == "create":
+                if "state pool is full" in str(error):
+                    return self._rwkv_error(
+                        "RWKV session capacity is exhausted",
+                        HTTPStatus.SERVICE_UNAVAILABLE,
+                        "rwkv_session_id",
+                    )
                 return self._rwkv_error(
                     str(error), HTTPStatus.CONFLICT, "rwkv_session_id"
                 )

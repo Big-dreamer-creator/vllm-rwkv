@@ -347,6 +347,143 @@ async def _recovery_test(
     }
 
 
+async def _stateful_soak(
+    client: httpx.AsyncClient,
+    base_url: str,
+    model: str,
+    session_count: int,
+    turns: int,
+    concurrency: int,
+) -> dict:
+    semaphore = asyncio.Semaphore(concurrency)
+    results: list[RequestResult] = []
+    session_ids = [f"soak-{int(time.time())}-{index}" for index in range(session_count)]
+
+    async def run_session(session_id: str) -> None:
+        for turn in range(turns):
+            async with semaphore:
+                result = await _post_chat(
+                    client,
+                    f"{base_url}/v1/chat/completions",
+                    {
+                        "model": model,
+                        "messages": [
+                            {
+                                "role": "user",
+                                "content": f"Session turn {turn}: reply with ready.",
+                            }
+                        ],
+                        "max_tokens": 2,
+                        "temperature": 0.0,
+                        "seed": 42,
+                        "rwkv_context_mode": "stateful",
+                        "rwkv_session_id": session_id,
+                        "rwkv_session_action": "create" if turn == 0 else "continue",
+                    },
+                )
+                results.append(result)
+            if result.status_code != 200:
+                break
+
+    await asyncio.gather(*(run_session(session_id) for session_id in session_ids))
+    delete_statuses = []
+    for session_id in session_ids:
+        response = await client.delete(f"{base_url}/v1/rwkv/sessions/{session_id}")
+        delete_statuses.append(response.status_code)
+    summary = _load_summary(results)
+    summary["sessions"] = session_count
+    summary["turns"] = turns
+    summary["delete_successes"] = sum(status == 200 for status in delete_statuses)
+    return summary
+
+
+async def _same_session_race(
+    client: httpx.AsyncClient,
+    base_url: str,
+    model: str,
+    session_id: str,
+    request_count: int,
+) -> dict:
+    create = await _post_chat(
+        client,
+        f"{base_url}/v1/chat/completions",
+        {
+            "model": model,
+            "messages": [{"role": "user", "content": "Start the session."}],
+            "max_tokens": 2,
+            "temperature": 0.0,
+            "rwkv_context_mode": "stateful",
+            "rwkv_session_id": session_id,
+            "rwkv_session_action": "create",
+        },
+    )
+
+    async def continue_session(index: int) -> RequestResult:
+        return await _post_chat(
+            client,
+            f"{base_url}/v1/chat/completions",
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": f"Concurrent turn {index}."}],
+                "max_tokens": 2,
+                "temperature": 0.0,
+                "rwkv_context_mode": "stateful",
+                "rwkv_session_id": session_id,
+                "rwkv_session_action": "continue",
+            },
+        )
+
+    continuations = await asyncio.gather(
+        *(continue_session(index) for index in range(request_count))
+    )
+    delete = await client.delete(f"{base_url}/v1/rwkv/sessions/{session_id}")
+    return {
+        "create_status": create.status_code,
+        "continuation_summary": _load_summary(continuations),
+        "delete_status": delete.status_code,
+    }
+
+
+async def _session_capacity_test(
+    client: httpx.AsyncClient,
+    base_url: str,
+    model: str,
+    session_count: int,
+) -> dict:
+    statuses = []
+    created_session_ids = []
+    prefix = f"capacity-{int(time.time())}"
+    for index in range(session_count):
+        session_id = f"{prefix}-{index}"
+        result = await _post_chat(
+            client,
+            f"{base_url}/v1/chat/completions",
+            {
+                "model": model,
+                "messages": [{"role": "user", "content": "Say ready."}],
+                "max_tokens": 1,
+                "temperature": 0.0,
+                "rwkv_context_mode": "stateful",
+                "rwkv_session_id": session_id,
+                "rwkv_session_action": "create",
+            },
+        )
+        statuses.append(result.status_code)
+        if result.status_code == 200:
+            created_session_ids.append(session_id)
+
+    delete_statuses = []
+    for session_id in created_session_ids:
+        response = await client.delete(f"{base_url}/v1/rwkv/sessions/{session_id}")
+        delete_statuses.append(response.status_code)
+    return {
+        "attempted": session_count,
+        "statuses": statuses,
+        "created": len(created_session_ids),
+        "delete_successes": sum(status == 200 for status in delete_statuses),
+    }
+
+
 async def _main(args: argparse.Namespace) -> None:
     headers = _headers(args.api_key)
     limits = httpx.Limits(
@@ -393,6 +530,30 @@ async def _main(args: argparse.Namespace) -> None:
             result["restart_recovery"] = await _recovery_test(
                 client, args.base_url, args.model, args.session_id
             )
+        if args.stateful_soak:
+            result["stateful_soak"] = await _stateful_soak(
+                client,
+                args.base_url,
+                args.model,
+                args.soak_sessions,
+                args.soak_turns,
+                args.concurrency,
+            )
+        if args.same_session_race:
+            result["same_session_race"] = await _same_session_race(
+                client,
+                args.base_url,
+                args.model,
+                f"{args.session_id}-race",
+                args.race_requests,
+            )
+        if args.session_capacity_test:
+            result["session_capacity"] = await _session_capacity_test(
+                client,
+                args.base_url,
+                args.model,
+                args.capacity_sessions,
+            )
     print(result)
 
 
@@ -410,6 +571,13 @@ def main() -> None:
     parser.add_argument("--ttl-wait-s", type=float, default=31.0)
     parser.add_argument("--stateful-tool-test", action="store_true")
     parser.add_argument("--recovery-test", action="store_true")
+    parser.add_argument("--stateful-soak", action="store_true")
+    parser.add_argument("--soak-sessions", type=int, default=8)
+    parser.add_argument("--soak-turns", type=int, default=20)
+    parser.add_argument("--same-session-race", action="store_true")
+    parser.add_argument("--race-requests", type=int, default=8)
+    parser.add_argument("--session-capacity-test", action="store_true")
+    parser.add_argument("--capacity-sessions", type=int, default=9)
     parser.add_argument("--timeout-s", type=float, default=120.0)
     args = parser.parse_args()
     asyncio.run(_main(args))
