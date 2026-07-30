@@ -95,11 +95,14 @@ def run_probe(base_url: str, model: str, api_key: str) -> tuple[bool, list[dict]
         chat_payload(model, "Give the final answer clearly: 17 + 25 = ?", 128),
     )
     output = message_content(response)
+    final_answer = output.strip().endswith("42")
     results.append(
         {
             "check": "arithmetic",
             "status": status,
-            "pass": "42" in output,
+            "pass": status == 200 and final_answer,
+            "answer_present": "42" in output,
+            "final_answer": final_answer,
             "finish_reason": finish_reason(response),
             "output": output[:500],
         }
@@ -140,13 +143,17 @@ def run_probe(base_url: str, model: str, api_key: str) -> tuple[bool, list[dict]
         api_key,
     )
     output = message_content(continuation)
+    marker_recalled = "MARKER_7391" in output
+    clean_marker = output.strip() == "MARKER_7391"
     results.append(
         {
             "check": "stateful_memory",
             "create_status": status_create,
             "continuation_status": status_continue,
             "delete_status": status_delete,
-            "pass": status_continue == 200 and "MARKER_7391" in output,
+            "pass": status_continue == 200 and clean_marker,
+            "marker_recalled": marker_recalled,
+            "clean_marker": clean_marker,
             "create_output": message_content(create)[:240],
             "continuation_output": output[:500],
             "error": continuation.get("http_error") or continuation.get("exception"),
